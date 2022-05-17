@@ -43,7 +43,6 @@ mypy:
 
 ### Container commands ###
 dist-dev: ## Build docker container
-	pipenv requirements
 	docker build --platform linux/amd64 \
 		-t $(ECR_REGISTRY_DEV)/alma-webhook-lambdas-dev:latest \
 		-t $(ECR_REGISTRY_DEV)/alma-webhook-lambdas-dev:`git describe --always` \

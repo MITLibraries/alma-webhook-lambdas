@@ -24,11 +24,19 @@ Required env variables:
   ```
 - Post data to the container:
   ```bash
-  curl -XPOST "http://localhost:9000/2015-03-31/functions/function/invocations" -d "{}"
+  curl -XPOST "http://localhost:9000/2015-03-31/functions/function/invocations" -H \
+  'Content-Type: application/json' -d \
+  '{"queryStringParameters":
+  {"challenge": "challenge-accepted"}, "requestContext": {"http": {"method": "GET"}}}'
   ```
 - Observe output:
-  ```
-  Hello lambda!
+  ```json
+  {
+    "headers": {"Content-Type": "text/plain"},
+    "isBase64Encoded": false,
+    "statusCode": 200,
+    "body": "challenge-accepted"
+  }
   ```
 
 ### To run a different handler in the container

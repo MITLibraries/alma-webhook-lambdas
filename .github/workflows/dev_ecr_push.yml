@@ -21,7 +21,7 @@ jobs:
     permissions:
       id-token: write
       contents: read
-    
+
     steps:
       - uses: actions/checkout@v2
       - name: Configure AWS credentials
@@ -34,3 +34,5 @@ jobs:
         run: make dist-dev
       - name: Push image
         run: make publish-dev
+      - name: Update lambda function
+        run: make update-lambda-dev

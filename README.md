@@ -13,6 +13,8 @@ Required env variables:
 - `ALMA_CHALLENGE_SECRET=itsasecret`: this value will work with the test fixtures, must
   match Alma sandbox/prod configured challenge secrets in Dev1, stage, and prod
   environments.
+- `ALMA_POD_EXPORT_JOB_NAME`: the exact name of the POD export job in Alma, must match
+  Alma sandbox/prod configured job name in Dev1, stage, and prod environments.
 - `WORKSPACE=dev`: env for local development.
 - `SENTRY_DSN`: only needed in production.
 
@@ -24,7 +26,7 @@ Required env variables:
 - Run the container:
   ```bash
   docker run -p 9000:8080 -e WORKSPACE=dev -e ALMA_CHALLENGE_SECRET=itsasecret \
-  alma-webhook-lambdas:latest
+  -e ALMA_POD_EXPORT_JOB_NAME="PPOD Export" alma-webhook-lambdas:latest
   ```
 - GET request example
   - Post data to the container:
@@ -48,7 +50,7 @@ Required env variables:
     ```bash
     curl -XPOST "http://localhost:9000/2015-03-31/functions/function/invocations" -H \
     "Content-Type: application/json" -d \
-    '{"headers": {"x-exl-signature": "bbQKggzWRSuwopIwszy757lusNZWOPllfv5Rt6Qj8uE="}, "requestContext": {"http": {"method": "POST"}}, "body": {"action": "JOB_END"}}'
+    '{"headers": {"x-exl-signature": "bsCrJo2dPgdNz9uuW/NTXcQfSxdM0M/6Sy7b4eoz60Y="}, "requestContext": {"http": {"method": "POST"}},  "body": "{\"action\": \"JOB_END\", \"job_instance\": {\"name\": \"PPOD Export\", \"status\": {\"value\": \"COMPLETED_SUCCESS\"}, \"counter\": [{\"type\": {\"value\": \"label.updated.records\"}, \"value\": \"1\"}]}}"}'
     ```
   - Observe output:
     ```json
@@ -56,7 +58,7 @@ Required env variables:
       "headers": {"Content-Type": "text/plain"},
       "isBase64Encoded": false,
       "statusCode": 200,
-      "body": "Webhook POST request received and validated, no action taken."
+      "body": "Webhook POST request received and validated, initiating POD upload."
     }
     ```
 

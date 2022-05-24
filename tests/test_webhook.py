@@ -1,8 +1,9 @@
+import json
 import logging
 
 import pytest
 
-from lambdas.webhook import lambda_handler, valid_signature
+from lambdas.webhook import count_exported_records, lambda_handler, valid_signature
 
 
 def test_webhook_configures_sentry_if_dsn_present(caplog, get_request, monkeypatch):
@@ -91,14 +92,142 @@ def test_webhook_handles_post_request_invalid_signature(
     ) in caplog.record_tuples
 
 
-def test_webhook_handles_post_request_success(caplog, post_request_valid_signature):
+def test_webhook_handles_post_request_not_job_end(caplog):
+    request_data = {
+        "headers": {"x-exl-signature": "2obxLFxF9gRkvaObLXXDpRO/mOcYlULyw5+nODvepK4="},
+        "requestContext": {"http": {"method": "POST"}},
+        "body": '{"action": "THIS_IS_WRONG", "job_instance": {"name": "PPOD Export"}}',
+    }
+    expected_output = {
+        "headers": {"Content-Type": "text/plain"},
+        "isBase64Encoded": False,
+        "statusCode": 400,
+        "body": "Webhook POST request was not a JOB_END action. Has the webhook "
+        "configuration changed?",
+    }
+    assert lambda_handler(request_data, {}) == expected_output
+    assert (
+        "lambdas.webhook",
+        30,
+        "Received a non-JOB_END webhook POST request, returning a 400 error response.",
+    ) in caplog.record_tuples
+
+
+def test_webhook_handles_post_request_pod_export_job_failed(caplog):
+    request_data = {
+        "headers": {"x-exl-signature": "3sygBxrCdZ5iHp/rLIiCkZeazo7kivDMCzQCBiOXOeI="},
+        "requestContext": {"http": {"method": "POST"}},
+        "body": '{"action": "JOB_END", "job_instance": {'
+        '"name": "PPOD Export", "status": {"value": "COMPLETED_FAILED"}}}',
+    }
+    expected_output = {
+        "headers": {"Content-Type": "text/plain"},
+        "isBase64Encoded": False,
+        "statusCode": 200,
+        "body": "Webhook POST request received and validated, POD export job failed "
+        "so no action was taken.",
+    }
+    assert lambda_handler(request_data, {}) == expected_output
+    assert (
+        "lambdas.webhook",
+        30,
+        "POD export job did not complete successfully, may need investigation. "
+        "Returning 200 success response.",
+    ) in caplog.record_tuples
+
+
+def test_webhook_handles_post_request_pod_export_job_no_records_exported(caplog):
+    request_body = {
+        "action": "JOB_END",
+        "job_instance": {
+            "name": "PPOD Export",
+            "status": {"value": "COMPLETED_SUCCESS"},
+            "counter": [
+                {
+                    "type": {"value": "label.new.records", "desc": "New Records"},
+                    "value": "0",
+                },
+                {
+                    "type": {
+                        "value": "label.updated.records",
+                        "desc": "Updated Records",
+                    },
+                    "value": "0",
+                },
+                {
+                    "type": {
+                        "value": "label.deleted.records",
+                        "desc": "Deleted Records",
+                    },
+                    "value": "0",
+                },
+            ],
+        },
+    }
+    request_data = {
+        "headers": {"x-exl-signature": "Gh9BBpFLm8wJEE31vNGuNlSXiQ/kay5+k4GPnVKdJ6k="},
+        "requestContext": {"http": {"method": "POST"}},
+        "body": json.dumps(request_body),
+    }
+    expected_output = {
+        "headers": {"Content-Type": "text/plain"},
+        "isBase64Encoded": False,
+        "statusCode": 200,
+        "body": "Webhook POST request received and validated, POD export job "
+        "exported zero records so no action was taken.",
+    }
+    assert lambda_handler(request_data, {}) == expected_output
+    assert (
+        "POD job did not export any records, no action needed. Returning 200 "
+        "success response." in caplog.text
+    )
+
+
+def test_webhook_handles_post_request_pod_export_job_success(caplog):
+    request_body = {
+        "action": "JOB_END",
+        "job_instance": {
+            "name": "PPOD Export",
+            "status": {"value": "COMPLETED_SUCCESS"},
+            "counter": [
+                {
+                    "type": {"value": "label.new.records", "desc": "New Records"},
+                    "value": "1",
+                },
+            ],
+        },
+    }
+    request_data = {
+        "headers": {"x-exl-signature": "3KQVqIKR1z9zyhmFd+Dw5KjPhKwRnvUeQzRbJSj/hms="},
+        "requestContext": {"http": {"method": "POST"}},
+        "body": json.dumps(request_body),
+    }
+    expected_output = {
+        "headers": {"Content-Type": "text/plain"},
+        "isBase64Encoded": False,
+        "statusCode": 200,
+        "body": "Webhook POST request received and validated, initiating POD upload.",
+    }
+    assert lambda_handler(request_data, {}) == expected_output
+    assert (
+        "POD export from Alma completed successfully, initiating POD upload step "
+        "function." in caplog.text
+    )
+
+
+def test_webhook_handles_post_request_not_pod_export_job(caplog):
+    request_data = {
+        "headers": {"x-exl-signature": "OF8TmEjIF1kyEKgTP6CPkLnPidGHQMpE5EdD7Pu9l10="},
+        "requestContext": {"http": {"method": "POST"}},
+        "body": '{"action": "JOB_END", "job_instance": {"name": "This is Wrong"}}',
+    }
     expected_output = {
         "headers": {"Content-Type": "text/plain"},
         "isBase64Encoded": False,
         "statusCode": 200,
         "body": "Webhook POST request received and validated, no action taken.",
     }
-    assert lambda_handler(post_request_valid_signature, {}) == expected_output
+    assert lambda_handler(request_data, {}) == expected_output
     assert (
         "POST request received and validated, no action triggered. Returning 200 "
         "success response." in caplog.text
@@ -119,3 +248,95 @@ def test_validate_invalid_signature_returns_false(post_request_invalid_signature
 
 def test_validate_valid_signature_returns_true(post_request_valid_signature):
     assert valid_signature(post_request_valid_signature) is True
+
+
+def test_count_exported_records_with_no_records_exported():
+    counter = [
+        {
+            "type": {"value": "label.new.records", "desc": "New Records"},
+            "value": "0",
+        },
+        {
+            "type": {"value": "label.updated.records", "desc": "Updated Records"},
+            "value": "0",
+        },
+        {
+            "type": {"value": "label.deleted.records", "desc": "Deleted Records"},
+            "value": "0",
+        },
+        {
+            "type": {
+                "value": "c.jobs.publishing.failed.publishing",
+                "desc": "Unpublished failed records",
+            },
+            "value": "1",
+        },
+        {
+            "type": {
+                "value": "c.jobs.publishing.skipped",
+                "desc": "Skipped records (update date changed but no data change)",
+            },
+            "value": "0",
+        },
+        {
+            "type": {
+                "value": "c.jobs.publishing.filtered_out",
+                "desc": "Filtered records (not published due to filter)",
+            },
+            "value": "1",
+        },
+        {
+            "type": {
+                "value": "c.jobs.publishing.totalRecordsWrittenToFile",
+                "desc": "Total records written to file",
+            },
+            "value": "0",
+        },
+    ]
+    assert count_exported_records(counter) == 0
+
+
+def test_count_exported_records_with_records_exported():
+    counter = [
+        {
+            "type": {"value": "label.new.records", "desc": "New Records"},
+            "value": "1",
+        },
+        {
+            "type": {"value": "label.updated.records", "desc": "Updated Records"},
+            "value": "2",
+        },
+        {
+            "type": {"value": "label.deleted.records", "desc": "Deleted Records"},
+            "value": "3",
+        },
+        {
+            "type": {
+                "value": "c.jobs.publishing.failed.publishing",
+                "desc": "Unpublished failed records",
+            },
+            "value": "0",
+        },
+        {
+            "type": {
+                "value": "c.jobs.publishing.skipped",
+                "desc": "Skipped records (update date changed but no data change)",
+            },
+            "value": "1",
+        },
+        {
+            "type": {
+                "value": "c.jobs.publishing.filtered_out",
+                "desc": "Filtered records (not published due to filter)",
+            },
+            "value": "0",
+        },
+        {
+            "type": {
+                "value": "c.jobs.publishing.totalRecordsWrittenToFile",
+                "desc": "Total records written to file",
+            },
+            "value": "0",
+        },
+    ]
+    assert count_exported_records(counter) == 6

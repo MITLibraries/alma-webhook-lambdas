@@ -77,13 +77,13 @@ def handle_post_request(event: dict) -> dict[str, object]:
     message_body = json.loads(event["body"])
     if message_body["action"] != "JOB_END":
         logger.warning(
-            "Received a non-JOB_END webhook POST request, returning a 400 error "
-            "response."
+            "Received a non-JOB_END webhook POST request, may require investigation. "
+            "Returning 200 success response."
         )
         return {
-            "statusCode": 400,
-            "body": "Webhook POST request was not a JOB_END action. Has the webhook "
-            "configuration changed?",
+            "statusCode": 200,
+            "body": "Webhook POST request received and validated, not a JOB_END "
+            "webhook so no action was taken.",
         }
 
     if message_body["job_instance"]["name"] == os.environ["ALMA_POD_EXPORT_JOB_NAME"]:

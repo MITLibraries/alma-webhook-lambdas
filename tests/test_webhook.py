@@ -101,15 +101,16 @@ def test_webhook_handles_post_request_not_job_end(caplog):
     expected_output = {
         "headers": {"Content-Type": "text/plain"},
         "isBase64Encoded": False,
-        "statusCode": 400,
-        "body": "Webhook POST request was not a JOB_END action. Has the webhook "
-        "configuration changed?",
+        "statusCode": 200,
+        "body": "Webhook POST request received and validated, not a JOB_END "
+        "webhook so no action was taken.",
     }
     assert lambda_handler(request_data, {}) == expected_output
     assert (
         "lambdas.webhook",
         30,
-        "Received a non-JOB_END webhook POST request, returning a 400 error response.",
+        "Received a non-JOB_END webhook POST request, may require investigation. "
+        "Returning 200 success response.",
     ) in caplog.record_tuples
 
 

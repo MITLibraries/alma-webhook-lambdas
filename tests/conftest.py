@@ -7,6 +7,7 @@ import pytest
 def test_env():
     os.environ = {
         "ALMA_CHALLENGE_SECRET": "itsasecret",
+        "ALMA_POD_EXPORT_JOB_NAME": "PPOD Export",
         "WORKSPACE": "test",
     }
     return
@@ -26,7 +27,7 @@ def post_request_invalid_signature():
     request_data = {
         "headers": {"x-exl-signature": "thisiswrong"},
         "requestContext": {"http": {"method": "POST"}},
-        "body": {"action": "JOB_END"},
+        "body": "The POST request body",
     }
     return request_data
 
@@ -34,8 +35,8 @@ def post_request_invalid_signature():
 @pytest.fixture()
 def post_request_valid_signature():
     request_data = {
-        "headers": {"x-exl-signature": "bbQKggzWRSuwopIwszy757lusNZWOPllfv5Rt6Qj8uE="},
+        "headers": {"x-exl-signature": "e9SHoXK4MZrSGqhglMK4w+/u1pjYn0bfTEYtcFqj7CE="},
         "requestContext": {"http": {"method": "POST"}},
-        "body": {"action": "JOB_END"},
+        "body": "The POST request body",
     }
     return request_data

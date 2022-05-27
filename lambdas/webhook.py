@@ -4,6 +4,7 @@ import json
 import logging
 import os
 
+import boto3
 import sentry_sdk
 
 logger = logging.getLogger(__name__)
@@ -139,9 +140,17 @@ def handle_pod_export_webhook(message_body: dict) -> dict[str, object]:
         "POD export from Alma completed successfully, initiating POD upload step "
         "function."
     )
+    formatted_job_date = message_body["job_instance"]["start_time"][:10].replace(
+        "-", ""
+    )
+    step_function_input = json.dumps(
+        {"filename-prefix": f"exlibris/pod/POD_ALMA_EXPORT_{formatted_job_date}"}
+    )
+    execute_state_machine(step_function_input)
+    logger.info("POD upload step function executed, returning 200 success response.")
     return {
         "statusCode": 200,
-        "body": "Webhook POST request received and validated, initiating POD upload.",
+        "body": "Webhook POST request received and validated, POD upload initiated.",
     }
 
 
@@ -159,3 +168,12 @@ def count_exported_records(counter: list[dict]) -> int:
         ]
     )
     return count
+
+
+def execute_state_machine(step_function_input: str) -> dict:
+    client = boto3.client("stepfunctions")
+    response = client.start_execution(
+        stateMachineArn=os.environ["PPOD_STATE_MACHINE_ARN"],
+        input=step_function_input,
+    )
+    return response

@@ -2,7 +2,6 @@
 Lambda functions to receive and handle Alma webhook requests
 
 ## Developing locally
-<https://docs.aws.amazon.com/lambda/latest/dg/images-test.html>
 
 ### Installation and setup
 - To install dependencies: `make install`
@@ -15,59 +14,42 @@ Required env variables:
   environments.
 - `ALMA_POD_EXPORT_JOB_NAME`: the exact name of the POD export job in Alma, must match
   Alma sandbox/prod configured job name in Dev1, stage, and prod environments.
+- `PPOD_STATE_MACHINE_ARN`: the arn of the step functions state machine. Specific to each environment.
 - `WORKSPACE=dev`: env for local development.
 - `SENTRY_DSN`: only needed in production.
 
-### To run locally
-- Build the container:
+### To verify local changes in Dev1
+- Ensure your aws cli is configured with credentials for the Dev1 account.
+- Ensure you have the above env variables set in your .env, matching those in our Dev1 environment.
+- Add the following to your .env: `LAMBDA_FUNCTION_URL=<the Dev1 lambda function URL>`
+- Publish the lambda function:
   ```bash
-  docker build -t alma-webhook-lambdas .
+  make publish-dev
+  make update-lambda-dev
   ```
-- Run the container:
+
+#### GET request example
+- Send a GET request with challenge phrase to the lambda function URL:
+
   ```bash
-  docker run -p 9000:8080 -e WORKSPACE=dev -e ALMA_CHALLENGE_SECRET=itsasecret \
-  -e ALMA_POD_EXPORT_JOB_NAME="PPOD Export" alma-webhook-lambdas:latest
+  pipenv run python -c "from lambdas.helpers import send_get_to_lambda_function_url; print(send_get_to_lambda_function_url('your challenge phrase'))"
   ```
-- GET request example
-  - Post data to the container:
-    ```bash
-    curl -XPOST "http://localhost:9000/2015-03-31/functions/function/invocations" -H \
-    "Content-Type: application/json" -d \
-    '{"queryStringParameters":
-    {"challenge": "challenge-accepted"}, "requestContext": {"http": {"method": "GET"}}}'
-    ```
-  - Observe output:
-    ```json
-    {
-      "headers": {"Content-Type": "text/plain"},
-      "isBase64Encoded": false,
-      "statusCode": 200,
-      "body": "challenge-accepted"
-    }
-    ```
-- POST request example
-  - Post data to the container:
-    ```bash
-    curl -XPOST "http://localhost:9000/2015-03-31/functions/function/invocations" -H \
-    "Content-Type: application/json" -d \
-    '{"headers": {"x-exl-signature": "bsCrJo2dPgdNz9uuW/NTXcQfSxdM0M/6Sy7b4eoz60Y="}, "requestContext": {"http": {"method": "POST"}},  "body": "{\"action\": \"JOB_END\", \"job_instance\": {\"name\": \"PPOD Export\", \"status\": {\"value\": \"COMPLETED_SUCCESS\"}, \"counter\": [{\"type\": {\"value\": \"label.updated.records\"}, \"value\": \"1\"}]}}"}'
-    ```
-  - Observe output:
-    ```json
-    {
-      "headers": {"Content-Type": "text/plain"},
-      "isBase64Encoded": false,
-      "statusCode": 200,
-      "body": "Webhook POST request received and validated, initiating POD upload."
-    }
-    ```
+  Observe output: `your challenge phrase`
 
-### To run a different handler in the container
-You can call any handler you copy into the container (see Dockerfile) by name as part of the `docker run` command.
+#### POST request examples
+- Send a POST request mimicking a webhook POST (not a POD export job)
+  ```bash
+  pipenv run python -c "from lambdas.helpers import send_post_to_lambda_function_url, SAMPLE_WEBHOOK_POST_BODY; print(send_post_to_lambda_function_url(SAMPLE_WEBHOOK_POST_BODY))"
+  ```
+  Observe output: `Webhook POST request received and validated, no action taken.`
 
-```bash
-docker run -p 9000:8080 -e WORKSPACE=dev alma-webhook-lambdas:latest lambdas.ping.lambda_handler
-curl -XPOST "http://localhost:9000/2015-03-31/functions/function/invocations" -d "{}"
-```
+- Send a POST request mimicking a POD export job webhook
+  *Note*: sending a request that mimics a POD export JOB_END will trigger the entire POD workflow, which is fine *in Dev1 only* for testing.
 
-Should result in `pong` as the output.
+  Add the following to your .env:
+  - `VALID_POD_EXPORT_DATE=<the date of a POD export with files in the Dev1 S3 export bucket, in "YYYY-MM-DD" format>` Note: if it's been a while since the last POD export from Alma sandbox, there may be no files in the Dev1 S3 export bucket and you may need to run the publishing job from the sandbox.
+
+  ```bash
+  pipenv run python -c "from lambdas.helpers import send_post_to_lambda_function_url, SAMPLE_POD_EXPORT_JOB_END_WEBHOOK_POST_BODY; print(send_post_to_lambda_function_url(SAMPLE_POD_EXPORT_JOB_END_WEBHOOK_POST_BODY))"
+  ```
+  Observe output: `POD export from Alma completed successfully, initiating POD upload step function.` and then check the Dev1 ppod state machine logs to confirm the entire process ran!

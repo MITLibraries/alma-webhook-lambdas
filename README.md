@@ -52,4 +52,4 @@ Required env variables:
   ```bash
   pipenv run python -c "from lambdas.helpers import send_post_to_lambda_function_url, SAMPLE_POD_EXPORT_JOB_END_WEBHOOK_POST_BODY; print(send_post_to_lambda_function_url(SAMPLE_POD_EXPORT_JOB_END_WEBHOOK_POST_BODY))"
   ```
-  Observe output: `POD export from Alma completed successfully, initiating POD upload step function.` and then check the Dev1 ppod state machine logs to confirm the entire process ran!
+  Observe output: `Webhook POST request received and validated, POD upload initiated.` and then check the Dev1 ppod state machine logs to confirm the entire process ran!

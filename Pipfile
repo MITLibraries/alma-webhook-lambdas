@@ -4,6 +4,8 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
+boto3 = "*"
+requests = "*"
 sentry-sdk = "*"
 
 [dev-packages]
@@ -14,6 +16,8 @@ flake8 = "*"
 isort = "*"
 mypy = "*"
 pytest = "*"
+requests-mock = "*"
+types-requests = "*"
 
 [requires]
 python_version = "3.9"

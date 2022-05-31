@@ -1,9 +1,16 @@
+import datetime
 import json
 import logging
+from unittest.mock import patch
 
 import pytest
 
-from lambdas.webhook import count_exported_records, lambda_handler, valid_signature
+from lambdas.webhook import (
+    count_exported_records,
+    execute_state_machine,
+    lambda_handler,
+    valid_signature,
+)
 
 
 def test_webhook_configures_sentry_if_dsn_present(caplog, get_request, monkeypatch):
@@ -184,11 +191,14 @@ def test_webhook_handles_post_request_pod_export_job_no_records_exported(caplog)
     )
 
 
-def test_webhook_handles_post_request_pod_export_job_success(caplog):
+def test_webhook_handles_post_request_pod_export_job_success(
+    caplog, stubbed_sfn_client
+):
     request_body = {
         "action": "JOB_END",
         "job_instance": {
             "name": "PPOD Export",
+            "start_time": "2022-05-01T14:55:14.894Z",
             "status": {"value": "COMPLETED_SUCCESS"},
             "counter": [
                 {
@@ -199,7 +209,7 @@ def test_webhook_handles_post_request_pod_export_job_success(caplog):
         },
     }
     request_data = {
-        "headers": {"x-exl-signature": "3KQVqIKR1z9zyhmFd+Dw5KjPhKwRnvUeQzRbJSj/hms="},
+        "headers": {"x-exl-signature": "4SqM6l42ofmTNImlA/vbznrYqCYPw11YhL80Bj1dyaE="},
         "requestContext": {"http": {"method": "POST"}},
         "body": json.dumps(request_body),
     }
@@ -207,12 +217,18 @@ def test_webhook_handles_post_request_pod_export_job_success(caplog):
         "headers": {"Content-Type": "text/plain"},
         "isBase64Encoded": False,
         "statusCode": 200,
-        "body": "Webhook POST request received and validated, initiating POD upload.",
+        "body": "Webhook POST request received and validated, POD upload initiated.",
     }
-    assert lambda_handler(request_data, {}) == expected_output
+    with patch("boto3.client") as mocked_boto_client:
+        mocked_boto_client.return_value = stubbed_sfn_client
+        assert lambda_handler(request_data, {}) == expected_output
     assert (
         "POD export from Alma completed successfully, initiating POD upload step "
         "function." in caplog.text
+    )
+    assert (
+        "POD upload step function executed, returning 200 success response."
+        in caplog.text
     )
 
 
@@ -341,3 +357,15 @@ def test_count_exported_records_with_records_exported():
         },
     ]
     assert count_exported_records(counter) == 6
+
+
+def test_execute_state_machine_success(stubbed_sfn_client):
+    with patch("boto3.client") as mocked_boto_client:
+        mocked_boto_client.return_value = stubbed_sfn_client
+        response = execute_state_machine(
+            '{"filename-prefix": "exlibris/pod/POD_ALMA_EXPORT_20220501"}',
+        )
+    assert response == {
+        "executionArn": "arn:aws:states:us-east-1:account:execution:ppod-test:12345",
+        "startDate": datetime.datetime(2022, 5, 1),
+    }

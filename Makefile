@@ -62,3 +62,4 @@ update-lambda-dev: ## Updates the lambda with whatever is the most recent image 
 	aws lambda update-function-code \
 		--function-name $(FUNCTION_DEV) \
 		--image-uri $(ECR_URL_DEV):latest
+		

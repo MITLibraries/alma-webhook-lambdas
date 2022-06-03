@@ -6,7 +6,7 @@ ECR_NAME_DEV:=alma-webhook-lambdas-dev
 ECR_URL_DEV:=222053980223.dkr.ecr.us-east-1.amazonaws.com/alma-webhook-lambdas-dev
 FUNCTION_DEV:=alma-webhook-lambdas-dev
 ### End of Terraform-generated header ###
-### This is the Terraform-generated header for alma-webhook-lambdas-stage
+### This is the Terraform-generated Makefile header for alma-webhook-lambdas-stage
 ECR_NAME_STAGE:=alma-webhook-lambdas-stage
 ECR_URL_STAGE:=840055183494.dkr.ecr.us-east-1.amazonaws.com/alma-webhook-lambdas-stage
 FUNCTION_STAGE:=alma-webhook-lambdas-stage
@@ -68,7 +68,7 @@ update-lambda-dev: ## Updates the lambda with whatever is the most recent image 
 		--function-name $(FUNCTION_DEV) \
 		--image-uri $(ECR_URL_DEV):latest
 		
-### developer Deploy Commands ###
+## Terraform-generated Makefile developer Deploy Commands ###
 dist-stage: ## Build docker container (intended for developer-based manual build)
 	docker build --platform linux/amd64 \
 	    -t $(ECR_URL_STAGE):latest \

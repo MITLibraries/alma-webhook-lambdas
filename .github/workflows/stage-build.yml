@@ -2,7 +2,7 @@
 name: Stage Build and Deploy Lambda Container
 on:
   workflow_dispatch:
-  pull_request:
+  push:
     branches:
       - main
     paths-ignore:

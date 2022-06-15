@@ -14,6 +14,7 @@ jobs:
       AWS_REGION: "us-east-1"
       GHA_ROLE_STAGE: alma-webhook-lambdas-gha-stage
       GHA_ROLE_PROD: alma-webhook-lambdas-gha-prod
-      ECR: "alma-webhook-lambdas-prod"
+      ECR_STAGE: "alma-webhook-lambdas-stage"
+      ECR_PROD: "alma-webhook-lambdas-prod"
       FUNCTION: "alma-webhook-lambdas-prod"
  

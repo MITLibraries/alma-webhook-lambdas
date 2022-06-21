@@ -140,9 +140,7 @@ def handle_pod_export_webhook(message_body: dict) -> dict[str, object]:
         "POD export from Alma completed successfully, initiating POD upload step "
         "function."
     )
-    formatted_job_date = message_body["job_instance"]["start_time"][:10].replace(
-        "-", ""
-    )
+    formatted_job_date = message_body["job_instance"]["end_time"][:10].replace("-", "")
     step_function_input = json.dumps(
         {"filename-prefix": f"exlibris/pod/POD_ALMA_EXPORT_{formatted_job_date}"}
     )

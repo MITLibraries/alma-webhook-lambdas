@@ -198,7 +198,7 @@ def test_webhook_handles_post_request_pod_export_job_success(
         "action": "JOB_END",
         "job_instance": {
             "name": "PPOD Export",
-            "start_time": "2022-05-01T14:55:14.894Z",
+            "end_time": "2022-05-01T14:55:14.894Z",
             "status": {"value": "COMPLETED_SUCCESS"},
             "counter": [
                 {
@@ -209,7 +209,7 @@ def test_webhook_handles_post_request_pod_export_job_success(
         },
     }
     request_data = {
-        "headers": {"x-exl-signature": "4SqM6l42ofmTNImlA/vbznrYqCYPw11YhL80Bj1dyaE="},
+        "headers": {"x-exl-signature": "jbrtIT9oSYwp2xxuYNFiXmrnL47xCplvvW+YKt8Vn+s="},
         "requestContext": {"http": {"method": "POST"}},
         "body": json.dumps(request_body),
     }

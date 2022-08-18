@@ -1,10 +1,11 @@
 import datetime
 import json
-import logging
+from importlib import reload
 from unittest.mock import patch
 
 import pytest
 
+from lambdas import webhook
 from lambdas.webhook import (
     count_exported_records,
     execute_state_machine,
@@ -13,10 +14,9 @@ from lambdas.webhook import (
 )
 
 
-def test_webhook_configures_sentry_if_dsn_present(caplog, get_request, monkeypatch):
+def test_webhook_configures_sentry_if_dsn_present(caplog, monkeypatch):
     monkeypatch.setenv("SENTRY_DSN", "https://1234567890@00000.ingest.sentry.io/123456")
-    caplog.set_level(logging.INFO)
-    lambda_handler(get_request, {})
+    reload(webhook)
     assert (
         "Sentry DSN found, exceptions will be sent to Sentry with env=test"
         in caplog.text
@@ -27,9 +27,15 @@ def test_webhook_doesnt_configure_sentry_if_dsn_not_present(
     caplog, get_request, monkeypatch
 ):
     monkeypatch.delenv("SENTRY_DSN", raising=False)
-    caplog.set_level(logging.INFO)
-    lambda_handler(get_request, {})
-    assert "Sentry DSN found" not in caplog.text
+    reload(webhook)
+    assert "No Sentry DSN found, exceptions will not be sent to Sentry" in caplog.text
+
+
+def test_webhook_missing_workspace_env_raises_error(monkeypatch):
+    monkeypatch.delenv("WORKSPACE", raising=False)
+    with pytest.raises(RuntimeError) as e:
+        lambda_handler({}, {})
+    assert "Required env variable WORKSPACE is not set" in str(e)
 
 
 def test_webhook_missing_request_method_raises_error():

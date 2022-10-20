@@ -127,7 +127,26 @@ def test_webhook_handles_post_request_not_job_end(caplog):
     ) in caplog.record_tuples
 
 
-def test_webhook_handles_post_request_pod_export_job_failed(caplog):
+def test_webhook_handles_post_request_job_end_not_pod_or_timdex_export_job(caplog):
+    request_data = {
+        "headers": {"x-exl-signature": "OF8TmEjIF1kyEKgTP6CPkLnPidGHQMpE5EdD7Pu9l10="},
+        "requestContext": {"http": {"method": "POST"}},
+        "body": '{"action": "JOB_END", "job_instance": {"name": "This is Wrong"}}',
+    }
+    expected_output = {
+        "headers": {"Content-Type": "text/plain"},
+        "isBase64Encoded": False,
+        "statusCode": 200,
+        "body": "Webhook POST request received and validated, no action taken.",
+    }
+    assert lambda_handler(request_data, {}) == expected_output
+    assert (
+        "POST request received and validated, no action triggered. Returning 200 "
+        "success response." in caplog.text
+    )
+
+
+def test_webhook_handles_post_request_job_end_job_failed(caplog):
     request_data = {
         "headers": {"x-exl-signature": "3sygBxrCdZ5iHp/rLIiCkZeazo7kivDMCzQCBiOXOeI="},
         "requestContext": {"http": {"method": "POST"}},
@@ -138,23 +157,23 @@ def test_webhook_handles_post_request_pod_export_job_failed(caplog):
         "headers": {"Content-Type": "text/plain"},
         "isBase64Encoded": False,
         "statusCode": 200,
-        "body": "Webhook POST request received and validated, POD export job failed "
+        "body": "Webhook POST request received and validated, PPOD export job failed "
         "so no action was taken.",
     }
     assert lambda_handler(request_data, {}) == expected_output
     assert (
         "lambdas.webhook",
         30,
-        "POD export job did not complete successfully, may need investigation. "
+        "PPOD export job did not complete successfully, may need investigation. "
         "Returning 200 success response.",
     ) in caplog.record_tuples
 
 
-def test_webhook_handles_post_request_pod_export_job_no_records_exported(caplog):
+def test_webhook_handles_post_request_job_end_no_records_exported(caplog):
     request_body = {
         "action": "JOB_END",
         "job_instance": {
-            "name": "PPOD Export",
+            "name": "TIMDEX Export to Test",
             "status": {"value": "COMPLETED_SUCCESS"},
             "counter": [
                 {
@@ -179,7 +198,7 @@ def test_webhook_handles_post_request_pod_export_job_no_records_exported(caplog)
         },
     }
     request_data = {
-        "headers": {"x-exl-signature": "Gh9BBpFLm8wJEE31vNGuNlSXiQ/kay5+k4GPnVKdJ6k="},
+        "headers": {"x-exl-signature": "N/0nwlIWrJukvs0G3Ltgx9O1rNRiyAMw0ckQ8MxbLjU="},
         "requestContext": {"http": {"method": "POST"}},
         "body": json.dumps(request_body),
     }
@@ -187,18 +206,18 @@ def test_webhook_handles_post_request_pod_export_job_no_records_exported(caplog)
         "headers": {"Content-Type": "text/plain"},
         "isBase64Encoded": False,
         "statusCode": 200,
-        "body": "Webhook POST request received and validated, POD export job "
+        "body": "Webhook POST request received and validated, TIMDEX export job "
         "exported zero records so no action was taken.",
     }
     assert lambda_handler(request_data, {}) == expected_output
     assert (
-        "POD job did not export any records, no action needed. Returning 200 "
+        "TIMDEX job did not export any records, no action needed. Returning 200 "
         "success response." in caplog.text
     )
 
 
 def test_webhook_handles_post_request_pod_export_job_success(
-    caplog, stubbed_sfn_client
+    caplog, stubbed_ppod_sfn_client
 ):
     request_body = {
         "action": "JOB_END",
@@ -223,37 +242,56 @@ def test_webhook_handles_post_request_pod_export_job_success(
         "headers": {"Content-Type": "text/plain"},
         "isBase64Encoded": False,
         "statusCode": 200,
-        "body": "Webhook POST request received and validated, POD upload initiated.",
+        "body": "Webhook POST request received and validated, PPOD pipeline initiated.",
     }
     with patch("boto3.client") as mocked_boto_client:
-        mocked_boto_client.return_value = stubbed_sfn_client
+        mocked_boto_client.return_value = stubbed_ppod_sfn_client
         assert lambda_handler(request_data, {}) == expected_output
     assert (
-        "POD export from Alma completed successfully, initiating POD upload step "
-        "function." in caplog.text
-    )
-    assert (
-        "POD upload step function executed, returning 200 success response."
+        "PPOD export from Alma completed successfully, initiating PPOD step function."
         in caplog.text
     )
+    assert "PPOD step function executed, returning 200 success response." in caplog.text
 
 
-def test_webhook_handles_post_request_not_pod_export_job(caplog):
+def test_webhook_handles_post_request_timdex_export_job_success(
+    caplog, stubbed_timdex_sfn_client
+):
+    request_body = {
+        "action": "JOB_END",
+        "job_instance": {
+            "name": "TIMDEX Export to Test FULL",
+            "end_time": "2022-05-01T14:55:14.894Z",
+            "status": {"value": "COMPLETED_SUCCESS"},
+            "counter": [
+                {
+                    "type": {"value": "label.new.records", "desc": "New Records"},
+                    "value": "1000",
+                },
+            ],
+        },
+    }
     request_data = {
-        "headers": {"x-exl-signature": "OF8TmEjIF1kyEKgTP6CPkLnPidGHQMpE5EdD7Pu9l10="},
+        "headers": {"x-exl-signature": "VT+tvy6pwbEm7BBjKB7qCyRg+S52zZ3N6HXxiBVEvN0="},
         "requestContext": {"http": {"method": "POST"}},
-        "body": '{"action": "JOB_END", "job_instance": {"name": "This is Wrong"}}',
+        "body": json.dumps(request_body),
     }
     expected_output = {
         "headers": {"Content-Type": "text/plain"},
         "isBase64Encoded": False,
         "statusCode": 200,
-        "body": "Webhook POST request received and validated, no action taken.",
+        "body": "Webhook POST request received and validated, TIMDEX pipeline "
+        "initiated.",
     }
-    assert lambda_handler(request_data, {}) == expected_output
+    with patch("boto3.client") as mocked_boto_client:
+        mocked_boto_client.return_value = stubbed_timdex_sfn_client
+        assert lambda_handler(request_data, {}) == expected_output
     assert (
-        "POST request received and validated, no action triggered. Returning 200 "
-        "success response." in caplog.text
+        "TIMDEX export from Alma completed successfully, initiating TIMDEX step "
+        "function." in caplog.text
+    )
+    assert (
+        "TIMDEX step function executed, returning 200 success response." in caplog.text
     )
 
 
@@ -365,10 +403,11 @@ def test_count_exported_records_with_records_exported():
     assert count_exported_records(counter) == 6
 
 
-def test_execute_state_machine_success(stubbed_sfn_client):
+def test_execute_state_machine_success(stubbed_ppod_sfn_client):
     with patch("boto3.client") as mocked_boto_client:
-        mocked_boto_client.return_value = stubbed_sfn_client
+        mocked_boto_client.return_value = stubbed_ppod_sfn_client
         response = execute_state_machine(
+            "arn:aws:states:us-east-1:account:stateMachine:ppod-test",
             '{"filename-prefix": "exlibris/pod/POD_ALMA_EXPORT_20220501"}',
         )
     assert response == {

@@ -3,6 +3,7 @@ import hmac
 import json
 import logging
 import os
+from datetime import datetime
 
 import boto3
 import sentry_sdk
@@ -162,8 +163,10 @@ def handle_job_end_webhook(message_body: dict) -> dict:
     )
     job_date = message_body["job_instance"]["end_time"][:10]
     state_machine_arn = os.environ[f"{job_type}_STATE_MACHINE_ARN"]
-    step_function_input = generate_step_function_input(job_date, job_name, job_type)
-    execute_state_machine(state_machine_arn, step_function_input)
+    step_function_input, execution_name = generate_step_function_input(
+        job_date, job_name, job_type
+    )
+    execute_state_machine(state_machine_arn, step_function_input, execution_name)
     logger.info("%s step function executed, returning 200 success response.", job_type)
     return {
         "statusCode": 200,
@@ -188,28 +191,39 @@ def count_exported_records(counter: list[dict]) -> int:
     return count
 
 
-def generate_step_function_input(job_date: str, job_name: str, job_type: str) -> str:
+def generate_step_function_input(
+    job_date: str, job_name: str, job_type: str
+) -> tuple[str, str]:
+    timestamp = datetime.now().strftime("%Y-%m-%dt%H-%M-%S")
     if job_type == "PPOD":
         result = {
             "filename-prefix": "exlibris/pod/POD_ALMA_EXPORT_"
             f"{job_date.replace('-', '')}"
         }
+        execution_name = f"ppod-upload-{timestamp}"
     elif job_type == "TIMDEX":
+        run_type = job_name.split()[-1].lower()
         result = {
             "next-step": "transform",
             "run-date": job_date,
-            "run-type": job_name.split()[-1].lower(),
+            "run-type": run_type,
             "source": "alma",
             "verbose": "true",
         }
-    return json.dumps(result)
+        execution_name = f"alma-{run_type}-ingest-{timestamp}"
+    return json.dumps(result), execution_name
 
 
-def execute_state_machine(state_machine_arn: str, step_function_input: str) -> dict:
+def execute_state_machine(
+    state_machine_arn: str,
+    step_function_input: str,
+    execution_name: str,
+) -> dict:
     client = boto3.client("stepfunctions")
     response = client.start_execution(
         stateMachineArn=state_machine_arn,
         input=step_function_input,
+        name=execution_name,
     )
     logger.debug(response)
     return response

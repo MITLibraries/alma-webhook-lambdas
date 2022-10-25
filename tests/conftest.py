@@ -102,6 +102,7 @@ def stubbed_ppod_sfn_client():
     expected_params = {
         "stateMachineArn": "arn:aws:states:us-east-1:account:stateMachine:ppod-test",
         "input": '{"filename-prefix": "exlibris/pod/POD_ALMA_EXPORT_20220501"}',
+        "name": "ppod-upload-2022-05-01t00-00-00",
     }
     with Stubber(sfn) as stubber:
         stubber.add_response("start_execution", expected_response, expected_params)
@@ -121,6 +122,7 @@ def stubbed_timdex_sfn_client():
         "stateMachineArn": "arn:aws:states:us-east-1:account:stateMachine:timdex-test",
         "input": '{"next-step": "transform", "run-date": "2022-05-01", '
         '"run-type": "full", "source": "alma", "verbose": "true"}',
+        "name": "alma-full-ingest-2022-05-01t00-00-00",
     }
     with Stubber(sfn) as stubber:
         stubber.add_response("start_execution", expected_response, expected_params)

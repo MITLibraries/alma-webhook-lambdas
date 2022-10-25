@@ -4,6 +4,7 @@ from importlib import reload
 from unittest.mock import patch
 
 import pytest
+from freezegun import freeze_time
 
 from lambdas import webhook
 from lambdas.webhook import (
@@ -216,6 +217,7 @@ def test_webhook_handles_post_request_job_end_no_records_exported(caplog):
     )
 
 
+@freeze_time("2022-05-01")
 def test_webhook_handles_post_request_pod_export_job_success(
     caplog, stubbed_ppod_sfn_client
 ):
@@ -254,6 +256,7 @@ def test_webhook_handles_post_request_pod_export_job_success(
     assert "PPOD step function executed, returning 200 success response." in caplog.text
 
 
+@freeze_time("2022-05-01")
 def test_webhook_handles_post_request_timdex_export_job_success(
     caplog, stubbed_timdex_sfn_client
 ):
@@ -403,12 +406,14 @@ def test_count_exported_records_with_records_exported():
     assert count_exported_records(counter) == 6
 
 
+@freeze_time("2022-05-01")
 def test_execute_state_machine_success(stubbed_ppod_sfn_client):
     with patch("boto3.client") as mocked_boto_client:
         mocked_boto_client.return_value = stubbed_ppod_sfn_client
         response = execute_state_machine(
             "arn:aws:states:us-east-1:account:stateMachine:ppod-test",
             '{"filename-prefix": "exlibris/pod/POD_ALMA_EXPORT_20220501"}',
+            "ppod-upload-2022-05-01t00-00-00",
         )
     assert response == {
         "executionArn": "arn:aws:states:us-east-1:account:execution:ppod-test:12345",

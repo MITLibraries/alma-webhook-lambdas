@@ -3,6 +3,7 @@ import hmac
 import json
 import logging
 import os
+from datetime import datetime
 
 import boto3
 import sentry_sdk
@@ -98,18 +99,7 @@ def handle_post_request(event: dict) -> dict[str, object]:
             "webhook so no action was taken.",
         }
 
-    if message_body["job_instance"]["name"] == os.environ["ALMA_POD_EXPORT_JOB_NAME"]:
-        logger.info("POD export job webhook received.")
-        return handle_pod_export_webhook(message_body)
-
-    logger.info(
-        "POST request received and validated, no action triggered. Returning 200 "
-        "success response."
-    )
-    return {
-        "statusCode": 200,
-        "body": "Webhook POST request received and validated, no action taken.",
-    }
+    return handle_job_end_webhook(message_body)
 
 
 def valid_signature(event: dict) -> bool:
@@ -124,42 +114,64 @@ def valid_signature(event: dict) -> bool:
     return request_signature == expected_signature
 
 
-def handle_pod_export_webhook(message_body: dict) -> dict[str, object]:
-    if message_body["job_instance"]["status"]["value"] != "COMPLETED_SUCCESS":
-        logger.warning(
-            "POD export job did not complete successfully, may need investigation. "
-            "Returning 200 success response."
-        )
-        return {
-            "statusCode": 200,
-            "body": "Webhook POST request received and validated, POD export job "
-            "failed so no action was taken.",
-        }
-
-    if count_exported_records(message_body["job_instance"]["counter"]) == 0:
+def handle_job_end_webhook(message_body: dict) -> dict:
+    job_name = message_body["job_instance"]["name"]
+    if job_name == os.environ["ALMA_POD_EXPORT_JOB_NAME"]:
+        logger.info("PPOD export job webhook received.")
+        job_type = "PPOD"
+    elif job_name.startswith(os.environ["ALMA_TIMDEX_EXPORT_JOB_NAME_PREFIX"]):
+        logger.info("TIMDEX export job webhook received.")
+        job_type = "TIMDEX"
+    else:
         logger.info(
-            "POD job did not export any records, no action needed. Returning 200 "
+            "POST request received and validated, no action triggered. Returning 200 "
             "success response."
         )
         return {
             "statusCode": 200,
-            "body": "Webhook POST request received and validated, POD export job "
-            "exported zero records so no action was taken.",
+            "body": "Webhook POST request received and validated, no action taken.",
+        }
+
+    if message_body["job_instance"]["status"]["value"] != "COMPLETED_SUCCESS":
+        logger.warning(
+            "%s export job did not complete successfully, may need investigation. "
+            "Returning 200 success response.",
+            job_type,
+        )
+        return {
+            "statusCode": 200,
+            "body": f"Webhook POST request received and validated, {job_type} export "
+            "job failed so no action was taken.",
+        }
+
+    if count_exported_records(message_body["job_instance"]["counter"]) == 0:
+        logger.info(
+            "%s job did not export any records, no action needed. Returning 200 "
+            "success response.",
+            job_type,
+        )
+        return {
+            "statusCode": 200,
+            "body": f"Webhook POST request received and validated, {job_type} "
+            "export job exported zero records so no action was taken.",
         }
 
     logger.info(
-        "POD export from Alma completed successfully, initiating POD upload step "
-        "function."
+        "%s export from Alma completed successfully, initiating %s step function.",
+        job_type,
+        job_type,
     )
-    formatted_job_date = message_body["job_instance"]["end_time"][:10].replace("-", "")
-    step_function_input = json.dumps(
-        {"filename-prefix": f"exlibris/pod/POD_ALMA_EXPORT_{formatted_job_date}"}
+    job_date = message_body["job_instance"]["end_time"][:10]
+    state_machine_arn = os.environ[f"{job_type}_STATE_MACHINE_ARN"]
+    step_function_input, execution_name = generate_step_function_input(
+        job_date, job_name, job_type
     )
-    execute_state_machine(step_function_input)
-    logger.info("POD upload step function executed, returning 200 success response.")
+    execute_state_machine(state_machine_arn, step_function_input, execution_name)
+    logger.info("%s step function executed, returning 200 success response.", job_type)
     return {
         "statusCode": 200,
-        "body": "Webhook POST request received and validated, POD upload initiated.",
+        "body": f"Webhook POST request received and validated, {job_type} pipeline "
+        "initiated.",
     }
 
 
@@ -179,10 +191,39 @@ def count_exported_records(counter: list[dict]) -> int:
     return count
 
 
-def execute_state_machine(step_function_input: str) -> dict:
+def generate_step_function_input(
+    job_date: str, job_name: str, job_type: str
+) -> tuple[str, str]:
+    timestamp = datetime.now().strftime("%Y-%m-%dt%H-%M-%S")
+    if job_type == "PPOD":
+        result = {
+            "filename-prefix": "exlibris/pod/POD_ALMA_EXPORT_"
+            f"{job_date.replace('-', '')}"
+        }
+        execution_name = f"ppod-upload-{timestamp}"
+    elif job_type == "TIMDEX":
+        run_type = job_name.split()[-1].lower()
+        result = {
+            "next-step": "transform",
+            "run-date": job_date,
+            "run-type": run_type,
+            "source": "alma",
+            "verbose": "true",
+        }
+        execution_name = f"alma-{run_type}-ingest-{timestamp}"
+    return json.dumps(result), execution_name
+
+
+def execute_state_machine(
+    state_machine_arn: str,
+    step_function_input: str,
+    execution_name: str,
+) -> dict:
     client = boto3.client("stepfunctions")
     response = client.start_execution(
-        stateMachineArn=os.environ["PPOD_STATE_MACHINE_ARN"],
+        stateMachineArn=state_machine_arn,
         input=step_function_input,
+        name=execution_name,
     )
+    logger.debug(response)
     return response

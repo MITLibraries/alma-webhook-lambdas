@@ -13,11 +13,19 @@ from lambdas.webhook import lambda_handler
 @pytest.fixture(autouse=True)
 def test_env():
     os.environ = {
+        "AWS_ACCESS_KEY_ID": "testing",
+        "AWS_DEFAULT_REGION": "us-east-1",
+        "AWS_SECRET_ACCESS_KEY": "testing",
+        "AWS_SECURITY_TOKEN": "testing",
+        "AWS_SESSION_TOKEN": "testing",
         "ALMA_CHALLENGE_SECRET": "itsasecret",
         "ALMA_POD_EXPORT_JOB_NAME": "PPOD Export",
+        "ALMA_TIMDEX_EXPORT_JOB_NAME_PREFIX": "TIMDEX Export",
         "LAMBDA_FUNCTION_URL": "http://example.com/lambda",
         "PPOD_STATE_MACHINE_ARN": "arn:aws:states:us-east-1:account:stateMachine:"
         "ppod-test",
+        "TIMDEX_STATE_MACHINE_ARN": "arn:aws:states:us-east-1:account:stateMachine:"
+        "timdex-test",
         "VALID_POD_EXPORT_DATE": "2022-05-23",
         "WORKSPACE": "test",
     }
@@ -83,7 +91,7 @@ def mocked_lambda_function_url():
 
 
 @pytest.fixture()
-def stubbed_sfn_client():
+def stubbed_ppod_sfn_client():
     sfn = botocore.session.get_session().create_client(
         "stepfunctions", region_name="us-east-1"
     )
@@ -94,6 +102,27 @@ def stubbed_sfn_client():
     expected_params = {
         "stateMachineArn": "arn:aws:states:us-east-1:account:stateMachine:ppod-test",
         "input": '{"filename-prefix": "exlibris/pod/POD_ALMA_EXPORT_20220501"}',
+        "name": "ppod-upload-2022-05-01t00-00-00",
+    }
+    with Stubber(sfn) as stubber:
+        stubber.add_response("start_execution", expected_response, expected_params)
+        yield sfn
+
+
+@pytest.fixture()
+def stubbed_timdex_sfn_client():
+    sfn = botocore.session.get_session().create_client(
+        "stepfunctions", region_name="us-east-1"
+    )
+    expected_response = {
+        "executionArn": "arn:aws:states:us-east-1:account:execution:timdex-test:12345",
+        "startDate": datetime.datetime(2022, 5, 1),
+    }
+    expected_params = {
+        "stateMachineArn": "arn:aws:states:us-east-1:account:stateMachine:timdex-test",
+        "input": '{"next-step": "transform", "run-date": "2022-05-01", '
+        '"run-type": "full", "source": "alma", "verbose": "true"}',
+        "name": "alma-full-ingest-2022-05-01t00-00-00",
     }
     with Stubber(sfn) as stubber:
         stubber.add_response("start_execution", expected_response, expected_params)

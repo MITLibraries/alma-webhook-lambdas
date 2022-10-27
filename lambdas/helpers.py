@@ -16,8 +16,23 @@ SAMPLE_POD_EXPORT_JOB_END_WEBHOOK_POST_BODY = {
     "action": "JOB_END",
     "job_instance": {
         "name": os.getenv("ALMA_POD_EXPORT_JOB_NAME", "PPOD Export"),
-        "start_time": os.getenv("VALID_POD_EXPORT_DATE", "2022-05-23"),
+        "end_time": os.getenv("VALID_POD_EXPORT_DATE", "2022-05-23"),
         "status": {"value": "COMPLETED_SUCCESS"},
+        "counter": [
+            {
+                "type": {"value": "label.new.records", "desc": "New Records"},
+                "value": "1",
+            },
+        ],
+    },
+}
+
+SAMPLE_TIMDEX_EXPORT_JOB_END_WEBHOOK_POST_BODY = {
+    "action": "JOB_END",
+    "job_instance": {
+        "name": "Publishing Platform Job TIMDEX EXPORT to Dev1 DAILY",
+        "status": {"value": "COMPLETED_SUCCESS"},
+        "end_time": os.getenv("VALID_TIMDEX_EXPORT_DATE", "2022-10-24"),
         "counter": [
             {
                 "type": {"value": "label.new.records", "desc": "New Records"},

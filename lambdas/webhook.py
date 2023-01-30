@@ -116,7 +116,7 @@ def valid_signature(event: dict) -> bool:
 
 def handle_job_end_webhook(message_body: dict) -> dict:
     job_name = message_body["job_instance"]["name"]
-    if job_name == os.environ["ALMA_POD_EXPORT_JOB_NAME"]:
+    if job_name.startswith(os.environ["ALMA_POD_EXPORT_JOB_NAME"]):
         logger.info("PPOD export job webhook received.")
         job_type = "PPOD"
     elif job_name.startswith(os.environ["ALMA_TIMDEX_EXPORT_JOB_NAME_PREFIX"]):
@@ -130,6 +130,19 @@ def handle_job_end_webhook(message_body: dict) -> dict:
         return {
             "statusCode": 200,
             "body": "Webhook POST request received and validated, no action taken.",
+        }
+
+    if str(env).lower() not in job_name.lower():
+        logger.info(
+            "Job '%s' was for a different environment (current environment is %s), no "
+            "action triggered. Returning 200 success response.",
+            job_name,
+            env,
+        )
+        return {
+            "statusCode": 200,
+            "body": f"Webhook POST request received and validated in {env} env for job "
+            f"'{job_name}', no action taken.",
         }
 
     if message_body["job_instance"]["status"]["value"] != "COMPLETED_SUCCESS":

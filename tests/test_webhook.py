@@ -128,6 +128,28 @@ def test_webhook_handles_post_request_not_job_end(caplog):
     ) in caplog.record_tuples
 
 
+def test_webhook_handles_post_request_job_for_different_env(caplog):
+    request_data = {
+        "headers": {"x-exl-signature": "YifQGpYh7FgeVVY63/aAjzQePWCLbHrm3xW8DchQARk="},
+        "requestContext": {"http": {"method": "POST"}},
+        "body": '{"action": "JOB_END", "job_instance": {"name": "TIMDEX Export to '
+        'other-env"}}',
+    }
+    expected_output = {
+        "headers": {"Content-Type": "text/plain"},
+        "isBase64Encoded": False,
+        "statusCode": 200,
+        "body": "Webhook POST request received and validated in test env for job "
+        "'TIMDEX Export to other-env', no action taken.",
+    }
+    assert lambda_handler(request_data, {}) == expected_output
+    assert (
+        "Job 'TIMDEX Export to other-env' was for a different environment (current "
+        "environment is test), no action triggered. Returning 200 success response."
+        in caplog.text
+    )
+
+
 def test_webhook_handles_post_request_job_end_not_pod_or_timdex_export_job(caplog):
     request_data = {
         "headers": {"x-exl-signature": "OF8TmEjIF1kyEKgTP6CPkLnPidGHQMpE5EdD7Pu9l10="},
@@ -149,10 +171,10 @@ def test_webhook_handles_post_request_job_end_not_pod_or_timdex_export_job(caplo
 
 def test_webhook_handles_post_request_job_end_job_failed(caplog):
     request_data = {
-        "headers": {"x-exl-signature": "3sygBxrCdZ5iHp/rLIiCkZeazo7kivDMCzQCBiOXOeI="},
+        "headers": {"x-exl-signature": "61cGEIufaH8zuuysJzNf/6VuD7DoYmnZm6KxRR45A+A="},
         "requestContext": {"http": {"method": "POST"}},
         "body": '{"action": "JOB_END", "job_instance": {'
-        '"name": "PPOD Export", "status": {"value": "COMPLETED_FAILED"}}}',
+        '"name": "PPOD Export to Test", "status": {"value": "COMPLETED_FAILED"}}}',
     }
     expected_output = {
         "headers": {"Content-Type": "text/plain"},
@@ -224,7 +246,7 @@ def test_webhook_handles_post_request_pod_export_job_success(
     request_body = {
         "action": "JOB_END",
         "job_instance": {
-            "name": "PPOD Export",
+            "name": "PPOD Export to Test",
             "end_time": "2022-05-01T14:55:14.894Z",
             "status": {"value": "COMPLETED_SUCCESS"},
             "counter": [
@@ -236,7 +258,7 @@ def test_webhook_handles_post_request_pod_export_job_success(
         },
     }
     request_data = {
-        "headers": {"x-exl-signature": "jbrtIT9oSYwp2xxuYNFiXmrnL47xCplvvW+YKt8Vn+s="},
+        "headers": {"x-exl-signature": "hTk8pLznD09nasQ0lT0EsCDQewQtP+yr/wuT9LSxJKw="},
         "requestContext": {"http": {"method": "POST"}},
         "body": json.dumps(request_body),
     }

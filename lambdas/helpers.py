@@ -55,12 +55,16 @@ def generate_signature(message_body: dict) -> str:
 
 def send_get_to_lambda_function_url(challenge_phrase: str) -> str:
     function_url = os.environ["LAMBDA_FUNCTION_URL"]
-    response = requests.get(function_url, params={"challenge": challenge_phrase})
+    response = requests.get(
+        function_url, params={"challenge": challenge_phrase}, timeout=30
+    )
     return response.text
 
 
 def send_post_to_lambda_function_url(message_body: dict) -> str:
     function_url = os.environ["LAMBDA_FUNCTION_URL"]
     headers = {"x-exl-signature": generate_signature(message_body)}
-    response = requests.post(function_url, headers=headers, json=message_body)
+    response = requests.post(
+        function_url, headers=headers, json=message_body, timeout=30
+    )
     return response.text

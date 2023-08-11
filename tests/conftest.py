@@ -61,6 +61,11 @@ def post_request_valid_signature():
     return request_data
 
 
+@pytest.fixture()
+def mocked_valid_signature(mocker):
+    return mocker.patch("lambdas.webhook.valid_signature", return_value=True)
+
+
 def get_request_callback(request, context):
     query = urllib.parse.urlparse(request.url).query
     parsed_query = urllib.parse.parse_qsl(query)[0]

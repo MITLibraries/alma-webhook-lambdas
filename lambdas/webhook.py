@@ -116,16 +116,14 @@ def valid_signature(event: dict) -> bool:
 
 def handle_job_end_webhook(message_body: dict) -> dict:
     job_name = message_body["job_instance"]["name"]
-    if job_name.startswith(os.environ["ALMA_POD_EXPORT_JOB_NAME"]):
-        logger.info("PPOD export job webhook received.")
-        job_type = "PPOD"
-    elif job_name.startswith(os.environ["ALMA_TIMDEX_EXPORT_JOB_NAME_PREFIX"]):
-        logger.info("TIMDEX export job webhook received.")
-        job_type = "TIMDEX"
-    else:
+
+    try:
+        job_type = get_job_type(job_name)
+    except ValueError as e:
         logger.info(
-            "POST request received and validated, no action triggered. Returning 200 "
-            "success response."
+            "POST request received and validated, no action triggered for job: '%s'. "
+            "Returning 200 success response.",
+            e,
         )
         return {
             "statusCode": 200,
@@ -174,10 +172,10 @@ def handle_job_end_webhook(message_body: dict) -> dict:
         job_type,
         job_type,
     )
-    job_date = message_body["job_instance"]["end_time"][:10]
+
     state_machine_arn = os.environ[f"{job_type}_STATE_MACHINE_ARN"]
     step_function_input, execution_name = generate_step_function_input(
-        job_date, job_name, job_type
+        message_body, job_type=job_type
     )
     execute_state_machine(state_machine_arn, step_function_input, execution_name)
     logger.info("%s step function executed, returning 200 success response.", job_type)
@@ -187,6 +185,14 @@ def handle_job_end_webhook(message_body: dict) -> dict:
         "initiated.",
     }
 
+def get_job_type(job_name):
+    if job_name.startswith(os.environ["ALMA_POD_EXPORT_JOB_NAME"]):
+        logger.info("PPOD export job webhook received.")
+        return "PPOD"
+    elif job_name.startswith(os.environ["ALMA_TIMDEX_EXPORT_JOB_NAME_PREFIX"]):
+        logger.info("TIMDEX export job webhook received.")
+        return "TIMDEX"
+    raise ValueError(job_name)
 
 def count_exported_records(counter: list[dict]) -> int:
     exported_record_types = [
@@ -204,26 +210,43 @@ def count_exported_records(counter: list[dict]) -> int:
     return count
 
 
-def generate_step_function_input(
-    job_date: str, job_name: str, job_type: str
-) -> tuple[str, str]:
-    timestamp = datetime.now().strftime("%Y-%m-%dt%H-%M-%S")
+def generate_step_function_input(message_body: dict, job_type: str) -> tuple[str, str]:
+    step_function_input = choose_step_function_input_generator(job_type)
+    return step_function_input(message_body)
+
+
+def choose_step_function_input_generator(job_type):
     if job_type == "PPOD":
-        result = {
-            "filename-prefix": "exlibris/pod/POD_ALMA_EXPORT_"
-            f"{job_date.replace('-', '')}"
-        }
-        execution_name = f"ppod-upload-{timestamp}"
+        return generate_ppod_step_function_input
     elif job_type == "TIMDEX":
-        run_type = job_name.split()[-1].lower()
-        result = {
-            "next-step": "transform",
-            "run-date": job_date,
-            "run-type": run_type,
-            "source": "alma",
-            "verbose": "true",
-        }
-        execution_name = f"alma-{run_type}-ingest-{timestamp}"
+        return generate_timdex_step_function_input
+    else:
+        raise ValueError(job_type)
+
+
+def generate_ppod_step_function_input(message_body) -> tuple[str, str]:
+    timestamp = datetime.now().strftime("%Y-%m-%dt%H-%M-%S")
+    job_date = message_body["job_instance"]["end_time"][:10]
+    result = {
+        "filename-prefix": "exlibris/pod/POD_ALMA_EXPORT_"
+        f"{job_date.replace('-', '')}"
+    }
+    execution_name = f"ppod-upload-{timestamp}"
+    return json.dumps(result), execution_name
+
+
+def generate_timdex_step_function_input(message_body):
+    timestamp = datetime.now().strftime("%Y-%m-%dt%H-%M-%S")
+    job_date = message_body["job_instance"]["end_time"][:10]
+    run_type = message_body["job_instance"]["name"].split()[-1].lower()
+    result = {
+        "next-step": "transform",
+        "run-date": job_date,
+        "run-type": run_type,
+        "source": "alma",
+        "verbose": "true",
+    }
+    execution_name = f"alma-{run_type}-ingest-{timestamp}"
     return json.dumps(result), execution_name
 
 

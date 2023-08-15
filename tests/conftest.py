@@ -21,11 +21,14 @@ def test_env():
         "ALMA_CHALLENGE_SECRET": "itsasecret",
         "ALMA_POD_EXPORT_JOB_NAME": "PPOD Export",
         "ALMA_TIMDEX_EXPORT_JOB_NAME_PREFIX": "TIMDEX Export",
+        "ALMA_BURSAR_EXPORT_JOB_NAME_PREFIX": "Export to bursar",
         "LAMBDA_FUNCTION_URL": "http://example.com/lambda",
         "PPOD_STATE_MACHINE_ARN": "arn:aws:states:us-east-1:account:stateMachine:"
         "ppod-test",
         "TIMDEX_STATE_MACHINE_ARN": "arn:aws:states:us-east-1:account:stateMachine:"
         "timdex-test",
+        "BURSAR_STATE_MACHINE_ARN": "arn:aws:states:us-east-1:account:stateMachine:"
+        "bursar-test",
         "VALID_POD_EXPORT_DATE": "2022-05-23",
         "WORKSPACE": "test",
     }
@@ -128,6 +131,27 @@ def stubbed_timdex_sfn_client():
         "input": '{"next-step": "transform", "run-date": "2022-05-01", '
         '"run-type": "full", "source": "alma", "verbose": "true"}',
         "name": "alma-full-ingest-2022-05-01t00-00-00",
+    }
+    with Stubber(sfn) as stubber:
+        stubber.add_response("start_execution", expected_response, expected_params)
+        yield sfn
+
+
+@pytest.fixture()
+def stubbed_bursar_sfn_client():
+    sfn = botocore.session.get_session().create_client(
+        "stepfunctions", region_name="us-east-1"
+    )
+    expected_response = {
+        "executionArn": "arn:aws:states:us-east-1:account:execution:-test:bursar12345",
+        "startDate": datetime.datetime(2022, 5, 1),
+    }
+    expected_params = {
+        "stateMachineArn": "arn:aws:states:us-east-1:account:stateMachine:bursar-test",
+        "input": '{"job_id": "test id", "job_name": "Export to bursar using profile '
+        "Bursar "
+        'Export to test"}',
+        "name": "bursar",
     }
     with Stubber(sfn) as stubber:
         stubber.add_response("start_execution", expected_response, expected_params)

@@ -118,7 +118,7 @@ def handle_job_end_webhook(message_body: dict) -> dict:
     job_name = message_body["job_instance"]["name"]
 
     try:
-        job_type = get_job_type(job_name)
+        job_type, generate_step_function_input = get_job_type(job_name)
     except ValueError as e:
         logger.info(
             "POST request received and validated, no action triggered for job: '%s'. "
@@ -174,9 +174,7 @@ def handle_job_end_webhook(message_body: dict) -> dict:
     )
 
     state_machine_arn = os.environ[f"{job_type}_STATE_MACHINE_ARN"]
-    step_function_input, execution_name = generate_step_function_input(
-        message_body, job_type=job_type
-    )
+    step_function_input, execution_name = generate_step_function_input(message_body)
     execute_state_machine(state_machine_arn, step_function_input, execution_name)
     logger.info("%s step function executed, returning 200 success response.", job_type)
     return {
@@ -185,20 +183,27 @@ def handle_job_end_webhook(message_body: dict) -> dict:
         "initiated.",
     }
 
+
 def get_job_type(job_name):
     if job_name.startswith(os.environ["ALMA_POD_EXPORT_JOB_NAME"]):
         logger.info("PPOD export job webhook received.")
-        return "PPOD"
+        return "PPOD", generate_ppod_step_function_input
     elif job_name.startswith(os.environ["ALMA_TIMDEX_EXPORT_JOB_NAME_PREFIX"]):
         logger.info("TIMDEX export job webhook received.")
-        return "TIMDEX"
-    raise ValueError(job_name)
+        return "TIMDEX", generate_timdex_step_function_input
+    elif job_name.startswith(os.environ["ALMA_BURSAR_EXPORT_JOB_NAME_PREFIX"]):
+        logger.info("BURSAR export job webhook received.")
+        return "BURSAR", generate_bursar_step_function_input
+    else:
+        raise ValueError(job_name)
+
 
 def count_exported_records(counter: list[dict]) -> int:
     exported_record_types = [
         "label.new.records",
         "label.updated.records",
         "label.deleted.records",
+        "com.exlibris.external.bursar.report.fines_fees_count",
     ]
     count = sum(
         [
@@ -208,20 +213,6 @@ def count_exported_records(counter: list[dict]) -> int:
         ]
     )
     return count
-
-
-def generate_step_function_input(message_body: dict, job_type: str) -> tuple[str, str]:
-    step_function_input = choose_step_function_input_generator(job_type)
-    return step_function_input(message_body)
-
-
-def choose_step_function_input_generator(job_type):
-    if job_type == "PPOD":
-        return generate_ppod_step_function_input
-    elif job_type == "TIMDEX":
-        return generate_timdex_step_function_input
-    else:
-        raise ValueError(job_type)
 
 
 def generate_ppod_step_function_input(message_body) -> tuple[str, str]:
@@ -247,6 +238,15 @@ def generate_timdex_step_function_input(message_body):
         "verbose": "true",
     }
     execution_name = f"alma-{run_type}-ingest-{timestamp}"
+    return json.dumps(result), execution_name
+
+
+def generate_bursar_step_function_input(message_body):
+    result = {
+        "job_id": message_body["job_instance"]["id"],
+        "job_name": message_body["job_instance"]["name"],
+    }
+    execution_name = "bursar"
     return json.dumps(result), execution_name
 
 

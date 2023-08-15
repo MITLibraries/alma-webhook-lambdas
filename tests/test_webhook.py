@@ -179,7 +179,8 @@ def test_webhook_handles_post_request_job_end_unknown_job(
     }
     assert lambda_handler(request_data, {}) == expected_output
     assert (
-        "POST request received and validated, no action triggered. Returning 200 "
+        "POST request received and validated, no action triggered for job: "
+        "'This is Wrong'. Returning 200 "
         "success response." in caplog.text
     )
 
@@ -343,6 +344,58 @@ def test_webhook_handles_post_request_timdex_export_job_success(
     )
     assert (
         "TIMDEX step function executed, returning 200 success response." in caplog.text
+    )
+
+
+@freeze_time("2022-05-01")
+def test_webhook_handles_post_request_bursar_export_job_success(
+    caplog, stubbed_bursar_sfn_client, mocked_valid_signature
+):
+    request_body = {
+        "action": "JOB_END",
+        "job_instance": {
+            "name": "Export to bursar using profile Bursar Export to test",
+            "id": "test id",
+            "end_time": "2022-05-01T14:55:14.894Z",
+            "status": {"value": "COMPLETED_SUCCESS"},
+            "counter": [
+                {
+                    "type": {
+                        "value": "com.exlibris.external.bursar.report.user_count",
+                        "desc": "Total number of users",
+                    },
+                    "value": "5",
+                },
+                {
+                    "type": {
+                        "value": "com.exlibris.external.bursar.report.fines_fees_count",
+                        "desc": "Total number of fines and fees",
+                    },
+                    "value": "20",
+                },
+            ],
+        },
+    }
+    request_data = {
+        "headers": {"x-exl-signature": "foo"},
+        "requestContext": {"http": {"method": "POST"}},
+        "body": json.dumps(request_body),
+    }
+    expected_output = {
+        "headers": {"Content-Type": "text/plain"},
+        "isBase64Encoded": False,
+        "statusCode": 200,
+        "body": "Webhook POST request received and validated, BURSAR pipeline initiated.",
+    }
+    with patch("boto3.client") as mocked_boto_client:
+        mocked_boto_client.return_value = stubbed_bursar_sfn_client
+        assert lambda_handler(request_data, {}) == expected_output
+    assert (
+        "BURSAR export from Alma completed successfully, initiating BURSAR step function."
+        in caplog.text
+    )
+    assert (
+        "BURSAR step function executed, returning 200 success response." in caplog.text
     )
 
 

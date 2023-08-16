@@ -9,15 +9,15 @@ requests = "*"
 sentry-sdk = "*"
 
 [dev-packages]
-bandit = "*"
 black = "*"
+boto3-stubs = {extras = ["essential"], version = "*"}
 coverage = "*"
-flake8 = "*"
 freezegun = "*"
-isort = "*"
 mypy = "*"
+pre-commit = "*"
 pytest = "*"
 requests-mock = "*"
+ruff = "*"
 types-requests = "*"
 typing-extensions = "*"
 pytest-mock = "*"

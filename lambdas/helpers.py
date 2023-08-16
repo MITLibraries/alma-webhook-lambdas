@@ -49,8 +49,7 @@ def generate_signature(message_body: dict) -> str:
     message_hash = hmac.digest(
         secret.encode(), msg=message_string.encode(), digest="sha256"
     )
-    signature = base64.b64encode(message_hash).decode()
-    return signature
+    return base64.b64encode(message_hash).decode()
 
 
 def send_get_to_lambda_function_url(challenge_phrase: str) -> str:
@@ -64,7 +63,5 @@ def send_get_to_lambda_function_url(challenge_phrase: str) -> str:
 def send_post_to_lambda_function_url(message_body: dict) -> str:
     function_url = os.environ["LAMBDA_FUNCTION_URL"]
     headers = {"x-exl-signature": generate_signature(message_body)}
-    response = requests.post(
-        function_url, headers=headers, json=message_body, timeout=30
-    )
+    response = requests.post(function_url, headers=headers, json=message_body, timeout=30)
     return response.text

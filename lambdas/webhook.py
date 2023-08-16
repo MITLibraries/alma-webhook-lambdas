@@ -3,8 +3,9 @@ import hmac
 import json
 import logging
 import os
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Callable
+
 
 import boto3
 import sentry_sdk
@@ -28,11 +29,12 @@ else:
     logger.info("No Sentry DSN found, exceptions will not be sent to Sentry")
 
 
-def lambda_handler(event: dict, context: object) -> dict[str, object]:
+def lambda_handler(event: dict, context: object) -> dict[str, object]:  # noqa: ARG001
     logger.debug(json.dumps(event))
 
     if not os.getenv("WORKSPACE"):
-        raise RuntimeError("Required env variable WORKSPACE is not set")
+        unset_workspace_error_message = "Required env variable WORKSPACE is not set"
+        raise RuntimeError(unset_workspace_error_message)
 
     base_response = {
         "headers": {"Content-Type": "text/plain"},
@@ -79,9 +81,7 @@ def handle_get_request(event: dict) -> dict[str, object]:
 
 def handle_post_request(event: dict) -> dict[str, object]:
     if not valid_signature(event):
-        logger.warning(
-            "Invalid signature in POST request, returning 401 error response."
-        )
+        logger.warning("Invalid signature in POST request, returning 401 error response.")
         return {
             "statusCode": 401,
             "body": "Unable to validate signature. Has the webhook challenge secret "
@@ -229,22 +229,16 @@ def count_exported_records(counter: list[dict]) -> int:
         "label.deleted.records",
         "com.exlibris.external.bursar.report.fines_fees_count",
     ]
-    count = sum(
-        [
-            int(c["value"])
-            for c in counter
-            if c["type"]["value"] in exported_record_types
-        ]
+    return sum(
+        [int(c["value"]) for c in counter if c["type"]["value"] in exported_record_types]
     )
-    return count
 
 
 def generate_ppod_step_function_input(message_body) -> tuple[str, str]:
     timestamp = datetime.now().strftime("%Y-%m-%dt%H-%M-%S")
     job_date = message_body["job_instance"]["end_time"][:10]
     result = {
-        "filename-prefix": "exlibris/pod/POD_ALMA_EXPORT_"
-        f"{job_date.replace('-', '')}"
+        "filename-prefix": "exlibris/pod/POD_ALMA_EXPORT_" f"{job_date.replace('-', '')}"
     }
     execution_name = f"ppod-upload-{timestamp}"
     return json.dumps(result), execution_name

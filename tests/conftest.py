@@ -1,6 +1,6 @@
-import datetime
 import os
 import urllib
+from datetime import UTC, datetime
 
 import botocore.session
 import pytest
@@ -11,7 +11,7 @@ from lambdas.webhook import lambda_handler
 
 
 @pytest.fixture(autouse=True)
-def test_env():
+def _test_env():
     os.environ = {
         "AWS_ACCESS_KEY_ID": "testing",
         "AWS_DEFAULT_REGION": "us-east-1",
@@ -35,33 +35,30 @@ def test_env():
     return
 
 
-@pytest.fixture()
+@pytest.fixture
 def get_request():
-    request_data = {
+    return {
         "queryStringParameters": {"challenge": "challenge-accepted"},
         "requestContext": {"http": {"method": "GET"}},
     }
-    return request_data
 
 
-@pytest.fixture()
+@pytest.fixture
 def post_request_invalid_signature():
-    request_data = {
+    return {
         "headers": {"x-exl-signature": "thisiswrong"},
         "requestContext": {"http": {"method": "POST"}},
         "body": "The POST request body",
     }
-    return request_data
 
 
-@pytest.fixture()
+@pytest.fixture
 def post_request_valid_signature():
-    request_data = {
+    return {
         "headers": {"x-exl-signature": "e9SHoXK4MZrSGqhglMK4w+/u1pjYn0bfTEYtcFqj7CE="},
         "requestContext": {"http": {"method": "POST"}},
         "body": "The POST request body",
     }
-    return request_data
 
 
 @pytest.fixture()
@@ -90,7 +87,7 @@ def post_request_callback(request, context):
     return response["body"]
 
 
-@pytest.fixture()
+@pytest.fixture
 def mocked_lambda_function_url():
     with requests_mock.Mocker() as m:
         m.get("http://example.com/lambda", text=get_request_callback)
@@ -98,14 +95,14 @@ def mocked_lambda_function_url():
         yield m
 
 
-@pytest.fixture()
+@pytest.fixture
 def stubbed_ppod_sfn_client():
     sfn = botocore.session.get_session().create_client(
         "stepfunctions", region_name="us-east-1"
     )
     expected_response = {
         "executionArn": "arn:aws:states:us-east-1:account:execution:ppod-test:12345",
-        "startDate": datetime.datetime(2022, 5, 1),
+        "startDate": datetime(2022, 5, 1, tzinfo=UTC),
     }
     expected_params = {
         "stateMachineArn": "arn:aws:states:us-east-1:account:stateMachine:ppod-test",
@@ -117,14 +114,14 @@ def stubbed_ppod_sfn_client():
         yield sfn
 
 
-@pytest.fixture()
+@pytest.fixture
 def stubbed_timdex_sfn_client():
     sfn = botocore.session.get_session().create_client(
         "stepfunctions", region_name="us-east-1"
     )
     expected_response = {
         "executionArn": "arn:aws:states:us-east-1:account:execution:timdex-test:12345",
-        "startDate": datetime.datetime(2022, 5, 1),
+        "startDate": datetime(2022, 5, 1, tzinfo=UTC),
     }
     expected_params = {
         "stateMachineArn": "arn:aws:states:us-east-1:account:stateMachine:timdex-test",

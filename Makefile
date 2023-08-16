@@ -1,51 +1,60 @@
-### This is the Terraform-generated header for the timdex-pipeline-lambads Makefile ###
+# ---- This is the Terraform-generated header for the timdex-pipeline-lambads Makefile ---- ##
 SHELL=/bin/bash
 DATETIME:=$(shell date -u +%Y%m%dT%H%M%SZ)
 
-### This is the Terraform-generated header for alma-webhook-lambdas-dev ###
+## ---- This is the Terraform-generated header for alma-webhook-lambdas-dev ---- ##
 ECR_NAME_DEV:=alma-webhook-lambdas-dev
 ECR_URL_DEV:=222053980223.dkr.ecr.us-east-1.amazonaws.com/alma-webhook-lambdas-dev
 FUNCTION_DEV:=alma-webhook-lambdas-dev
-### End of Terraform-generated header ###
+## ---- End of Terraform-generated header ---- ##
 
 help: ## Print this message
 	@awk 'BEGIN { FS = ":.*##"; print "Usage:  make <target>\n\nTargets:" } \
 /^[-_[:alpha:]]+:.?*##/ { printf "  %-15s%s\n", $$1, $$2 }' $(MAKEFILE_LIST)
 
-### Dependency commands ###
-install: ## Install dependencies
+## ---- Dependency commands ---- ##
+install: # install python dependencies
 	pipenv install --dev
+	pipenv run pre-commit install
 
-update: install ## Update all Python dependencies
+update: install # update all python dependencies
 	pipenv clean
 	pipenv update --dev
-	pipenv requirements
 
-### Test commands ###
-test: ## Run tests and print a coverage report
+## ---- Test commands ---- ##
+test: # run tests and print coverage report
 	pipenv run coverage run --source=lambdas -m pytest -vv
 	pipenv run coverage report -m
 
 coveralls: test
 	pipenv run coverage lcov -o ./coverage/lcov.info
 
-### Lint commands ###
-lint: bandit black flake8 isort mypy ## Lint the repo
+## ---- Code quality and safety commands ###
 
-bandit:
-	pipenv run bandit -r lambdas
+# linting commands
+lint: black mypy ruff safety
 
 black:
 	pipenv run black --check --diff .
 
-flake8:
-	pipenv run flake8 .
-
-isort:
-	pipenv run isort . --diff
-
 mypy:
-	pipenv run mypy lambdas
+	pipenv run mypy lambdas -v
+
+ruff:
+	pipenv run ruff check .
+
+safety:
+	pipenv check
+	pipenv verify
+
+# apply changes to resolve any linting errors
+lint-apply: black-apply ruff-apply
+
+black-apply: 
+	pipenv run black .
+
+ruff-apply: 
+	pipenv run ruff check --fix .
 
 ### Terraform-generated Developer Deploy Commands for Dev environment ###
 dist-dev: ## Build docker container (intended for developer-based manual build)

@@ -14,9 +14,7 @@ def test_generate_signature_dict_body():
 
 
 def test_generate_signature_string_body():
-    assert (
-        generate_signature("message") == "tp4YILPZGmIjcZLSaTa+3Ws+1BuNzeZI3byc7gcQ604="
-    )
+    assert generate_signature("message") == "tp4YILPZGmIjcZLSaTa+3Ws+1BuNzeZI3byc7gcQ604="
 
 
 def test_send_get_to_lambda_function_url(mocked_lambda_function_url):

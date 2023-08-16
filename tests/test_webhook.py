@@ -1,5 +1,5 @@
-import datetime
 import json
+from datetime import UTC, datetime
 from importlib import reload
 from unittest.mock import patch
 
@@ -19,8 +19,7 @@ def test_webhook_configures_sentry_if_dsn_present(caplog, monkeypatch):
     monkeypatch.setenv("SENTRY_DSN", "https://1234567890@00000.ingest.sentry.io/123456")
     reload(webhook)
     assert (
-        "Sentry DSN found, exceptions will be sent to Sentry with env=test"
-        in caplog.text
+        "Sentry DSN found, exceptions will be sent to Sentry with env=test" in caplog.text
     )
 
 
@@ -342,9 +341,7 @@ def test_webhook_handles_post_request_timdex_export_job_success(
         "TIMDEX export from Alma completed successfully, initiating TIMDEX step "
         "function." in caplog.text
     )
-    assert (
-        "TIMDEX step function executed, returning 200 success response." in caplog.text
-    )
+    assert "TIMDEX step function executed, returning 200 success response." in caplog.text
 
 
 @freeze_time("2022-05-01")
@@ -516,7 +513,7 @@ def test_count_exported_records_with_records_exported():
             "value": "0",
         },
     ]
-    assert count_exported_records(counter) == 6
+    assert count_exported_records(counter) == 6  # noqa: PLR2004
 
 
 @freeze_time("2022-05-01")
@@ -530,5 +527,5 @@ def test_execute_state_machine_success(stubbed_ppod_sfn_client):
         )
     assert response == {
         "executionArn": "arn:aws:states:us-east-1:account:execution:ppod-test:12345",
-        "startDate": datetime.datetime(2022, 5, 1),
+        "startDate": datetime(2022, 5, 1, tzinfo=UTC),
     }

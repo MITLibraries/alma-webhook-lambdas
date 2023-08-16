@@ -4,6 +4,7 @@ import json
 import logging
 import os
 from datetime import datetime
+from typing import Callable
 
 import boto3
 import sentry_sdk
@@ -184,7 +185,11 @@ def handle_job_end_webhook(message_body: dict) -> dict:
     }
 
 
-def get_job_type(job_name):
+def get_job_type(job_name: str) -> tuple[str, Callable]:
+    """Given an expected job name from the Alma webhook POST request, return the job type
+    and corresponding function for generating the step
+    function input.
+    """
     if job_name.startswith(os.environ["ALMA_POD_EXPORT_JOB_NAME"]):
         logger.info("PPOD export job webhook received.")
         return "PPOD", generate_ppod_step_function_input
@@ -226,7 +231,7 @@ def generate_ppod_step_function_input(message_body) -> tuple[str, str]:
     return json.dumps(result), execution_name
 
 
-def generate_timdex_step_function_input(message_body):
+def generate_timdex_step_function_input(message_body) -> tuple[str, str]:
     timestamp = datetime.now().strftime("%Y-%m-%dt%H-%M-%S")
     job_date = message_body["job_instance"]["end_time"][:10]
     run_type = message_body["job_instance"]["name"].split()[-1].lower()
@@ -241,7 +246,7 @@ def generate_timdex_step_function_input(message_body):
     return json.dumps(result), execution_name
 
 
-def generate_bursar_step_function_input(message_body):
+def generate_bursar_step_function_input(message_body) -> tuple[str, str]:
     result = {
         "job_id": message_body["job_instance"]["id"],
         "job_name": message_body["job_instance"]["name"],

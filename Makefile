@@ -38,7 +38,7 @@ black:
 	pipenv run black --check --diff .
 
 mypy:
-	pipenv run mypy lambdas -v
+	pipenv run mypy .
 
 ruff:
 	pipenv run ruff check .

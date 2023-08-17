@@ -3,9 +3,9 @@ import hmac
 import json
 import logging
 import os
+from collections.abc import Callable
 from datetime import UTC, datetime
-from typing import Callable
-
+from typing import Any
 
 import boto3
 import sentry_sdk
@@ -186,8 +186,10 @@ def handle_job_end_webhook(message_body: dict) -> dict:
 
 
 def get_job_type(job_name: str) -> tuple[str, Callable]:
-    """Given an expected job name from the Alma webhook POST request, return the job type
-    and corresponding function for generating the step function input.
+    """Get job name from Alma webhook POST request.
+
+    Given an expected job name, return the job type and corresponding function for
+    generating the step function input.
     """
     job_types = [
         (
@@ -213,7 +215,7 @@ def get_job_type(job_name: str) -> tuple[str, Callable]:
     for job_type, env_key, step_function_input_handler, log_msg in job_types:
         job_name_prefix = os.getenv(env_key)
         if not job_name_prefix:
-            logger.warning("expected env var not present: %s" % env_key)
+            logger.warning("Expected env var not present: %s", env_key)
         if job_name_prefix and job_name.startswith(job_name_prefix):
             logger.info(log_msg)
             return job_type, step_function_input_handler
@@ -234,18 +236,18 @@ def count_exported_records(counter: list[dict]) -> int:
     )
 
 
-def generate_ppod_step_function_input(message_body) -> tuple[str, str]:
-    timestamp = datetime.now().strftime("%Y-%m-%dt%H-%M-%S")
+def generate_ppod_step_function_input(message_body: dict[str, Any]) -> tuple[str, str]:
+    timestamp = datetime.now(tz=UTC).strftime("%Y-%m-%dt%H-%M-%S")
     job_date = message_body["job_instance"]["end_time"][:10]
     result = {
-        "filename-prefix": "exlibris/pod/POD_ALMA_EXPORT_" f"{job_date.replace('-', '')}"
+        "filename-prefix": f"exlibris/pod/POD_ALMA_EXPORT_{job_date.replace('-', '')}"
     }
     execution_name = f"ppod-upload-{timestamp}"
     return json.dumps(result), execution_name
 
 
-def generate_timdex_step_function_input(message_body) -> tuple[str, str]:
-    timestamp = datetime.now().strftime("%Y-%m-%dt%H-%M-%S")
+def generate_timdex_step_function_input(message_body: dict[str, Any]) -> tuple[str, str]:
+    timestamp = datetime.now(tz=UTC).strftime("%Y-%m-%dt%H-%M-%S")
     job_date = message_body["job_instance"]["end_time"][:10]
     run_type = message_body["job_instance"]["name"].split()[-1].lower()
     result = {
@@ -259,7 +261,7 @@ def generate_timdex_step_function_input(message_body) -> tuple[str, str]:
     return json.dumps(result), execution_name
 
 
-def generate_bursar_step_function_input(message_body) -> tuple[str, str]:
+def generate_bursar_step_function_input(message_body: dict[str, Any]) -> tuple[str, str]:
     result = {
         "job_id": message_body["job_instance"]["id"],
         "job_name": message_body["job_instance"]["name"],

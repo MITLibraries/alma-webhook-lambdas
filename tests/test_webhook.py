@@ -158,9 +158,7 @@ def test_webhook_handles_post_request_job_for_different_env(
     )
 
 
-def test_webhook_handles_post_request_job_end_unknown_job(
-    caplog, mocked_valid_signature
-):
+def test_webhook_handles_post_request_job_end_unknown_job(caplog, mocked_valid_signature):
     request_body = {
         "action": "JOB_END",
         "job_instance": {"name": "This is Wrong"},
@@ -184,9 +182,7 @@ def test_webhook_handles_post_request_job_end_unknown_job(
     )
 
 
-def test_webhook_handles_post_request_job_end_job_failed(
-    caplog, mocked_valid_signature
-):
+def test_webhook_handles_post_request_job_end_job_failed(caplog, mocked_valid_signature):
     request_body = {
         "action": "JOB_END",
         "job_instance": {
@@ -391,9 +387,7 @@ def test_webhook_handles_post_request_bursar_export_job_success(
         "BURSAR export from Alma completed successfully, initiating BURSAR step function."
         in caplog.text
     )
-    assert (
-        "BURSAR step function executed, returning 200 success response." in caplog.text
-    )
+    assert "BURSAR step function executed, returning 200 success response." in caplog.text
 
 
 def test_validate_missing_signature_returns_false():
@@ -416,11 +410,10 @@ def test_get_job_type_warning_if_env_missing(caplog, monkeypatch):
     job_name = "TIMDEX Export to Test Full"
     monkeypatch.delenv("ALMA_TIMDEX_EXPORT_JOB_NAME_PREFIX")
     reload(webhook)
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="TIMDEX Export to Test Full"):
         webhook.get_job_type(job_name)
     assert (
-        "expected env var not present: ALMA_TIMDEX_EXPORT_JOB_NAME_PREFIX"
-        in caplog.text
+        "Expected env var not present: ALMA_TIMDEX_EXPORT_JOB_NAME_PREFIX" in caplog.text
     )
 
 

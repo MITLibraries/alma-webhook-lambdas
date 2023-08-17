@@ -1,6 +1,6 @@
+import datetime
 import os
 import urllib
-from datetime import UTC, datetime
 
 import botocore.session
 import pytest
@@ -12,27 +12,27 @@ from lambdas.webhook import lambda_handler
 
 @pytest.fixture(autouse=True)
 def _test_env():
-    os.environ = {
-        "AWS_ACCESS_KEY_ID": "testing",
-        "AWS_DEFAULT_REGION": "us-east-1",
-        "AWS_SECRET_ACCESS_KEY": "testing",
-        "AWS_SECURITY_TOKEN": "testing",
-        "AWS_SESSION_TOKEN": "testing",
-        "ALMA_CHALLENGE_SECRET": "itsasecret",
-        "ALMA_POD_EXPORT_JOB_NAME": "PPOD Export",
-        "ALMA_TIMDEX_EXPORT_JOB_NAME_PREFIX": "TIMDEX Export",
-        "ALMA_BURSAR_EXPORT_JOB_NAME_PREFIX": "Export to bursar",
-        "LAMBDA_FUNCTION_URL": "http://example.com/lambda",
-        "PPOD_STATE_MACHINE_ARN": "arn:aws:states:us-east-1:account:stateMachine:"
-        "ppod-test",
-        "TIMDEX_STATE_MACHINE_ARN": "arn:aws:states:us-east-1:account:stateMachine:"
-        "timdex-test",
-        "BURSAR_STATE_MACHINE_ARN": "arn:aws:states:us-east-1:account:stateMachine:"
-        "bursar-test",
-        "VALID_POD_EXPORT_DATE": "2022-05-23",
-        "WORKSPACE": "test",
-    }
-    return
+    os.environ["AWS_ACCESS_KEY_ID"] = "testing"
+    os.environ["AWS_DEFAULT_REGION"] = "us-east-1"
+    os.environ["AWS_SECRET_ACCESS_KEY"] = "testing"
+    os.environ["AWS_SECURITY_TOKEN"] = "testing"
+    os.environ["AWS_SESSION_TOKEN"] = "testing"
+    os.environ["ALMA_CHALLENGE_SECRET"] = "itsasecret"
+    os.environ["ALMA_POD_EXPORT_JOB_NAME"] = "PPOD Export"
+    os.environ["ALMA_TIMDEX_EXPORT_JOB_NAME_PREFIX"] = "TIMDEX Export"
+    os.environ["ALMA_BURSAR_EXPORT_JOB_NAME_PREFIX"] = "Export to bursar"
+    os.environ["LAMBDA_FUNCTION_URL"] = "http://example.com/lambda"
+    os.environ[
+        "PPOD_STATE_MACHINE_ARN"
+    ] = "arn:aws:states:us-east-1:account:stateMachine:ppod-test"
+    os.environ[
+        "TIMDEX_STATE_MACHINE_ARN"
+    ] = "arn:aws:states:us-east-1:account:stateMachine:timdex-test"
+    os.environ[
+        "BURSAR_STATE_MACHINE_ARN"
+    ] = "arn:aws:states:us-east-1:account:stateMachine:bursar-test"
+    os.environ["VALID_POD_EXPORT_DATE"] = "2022-05-23"
+    os.environ["WORKSPACE"] = "test"
 
 
 @pytest.fixture
@@ -61,7 +61,7 @@ def post_request_valid_signature():
     }
 
 
-@pytest.fixture()
+@pytest.fixture
 def mocked_valid_signature(mocker):
     return mocker.patch("lambdas.webhook.valid_signature", return_value=True)
 
@@ -102,7 +102,7 @@ def stubbed_ppod_sfn_client():
     )
     expected_response = {
         "executionArn": "arn:aws:states:us-east-1:account:execution:ppod-test:12345",
-        "startDate": datetime(2022, 5, 1, tzinfo=UTC),
+        "startDate": datetime.datetime(2022, 5, 1, tzinfo=datetime.UTC),
     }
     expected_params = {
         "stateMachineArn": "arn:aws:states:us-east-1:account:stateMachine:ppod-test",
@@ -121,7 +121,7 @@ def stubbed_timdex_sfn_client():
     )
     expected_response = {
         "executionArn": "arn:aws:states:us-east-1:account:execution:timdex-test:12345",
-        "startDate": datetime(2022, 5, 1, tzinfo=UTC),
+        "startDate": datetime.datetime(2022, 5, 1, tzinfo=datetime.UTC),
     }
     expected_params = {
         "stateMachineArn": "arn:aws:states:us-east-1:account:stateMachine:timdex-test",
@@ -134,14 +134,14 @@ def stubbed_timdex_sfn_client():
         yield sfn
 
 
-@pytest.fixture()
+@pytest.fixture
 def stubbed_bursar_sfn_client():
     sfn = botocore.session.get_session().create_client(
         "stepfunctions", region_name="us-east-1"
     )
     expected_response = {
         "executionArn": "arn:aws:states:us-east-1:account:execution:-test:bursar12345",
-        "startDate": datetime.datetime(2022, 5, 1),
+        "startDate": datetime.datetime(2022, 5, 1, tzinfo=datetime.UTC),
     }
     expected_params = {
         "stateMachineArn": "arn:aws:states:us-east-1:account:stateMachine:bursar-test",

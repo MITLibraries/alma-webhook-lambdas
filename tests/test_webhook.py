@@ -106,11 +106,15 @@ def test_webhook_handles_post_request_invalid_signature(
     ) in caplog.record_tuples
 
 
-def test_webhook_handles_post_request_not_job_end(caplog):
+def test_webhook_handles_post_request_not_job_end(caplog, mocked_valid_signature):
+    request_body = {
+        "action": "THIS_IS_WRONG",
+        "job_instance": {"name": "PPOD Export"},
+    }
     request_data = {
-        "headers": {"x-exl-signature": "2obxLFxF9gRkvaObLXXDpRO/mOcYlULyw5+nODvepK4="},
+        "headers": {"x-exl-signature": "foo"},
         "requestContext": {"http": {"method": "POST"}},
-        "body": '{"action": "THIS_IS_WRONG", "job_instance": {"name": "PPOD Export"}}',
+        "body": json.dumps(request_body),
     }
     expected_output = {
         "headers": {"Content-Type": "text/plain"},
@@ -128,12 +132,17 @@ def test_webhook_handles_post_request_not_job_end(caplog):
     ) in caplog.record_tuples
 
 
-def test_webhook_handles_post_request_job_for_different_env(caplog):
+def test_webhook_handles_post_request_job_for_different_env(
+    caplog, mocked_valid_signature
+):
+    request_body = {
+        "action": "JOB_END",
+        "job_instance": {"name": "TIMDEX Export to other-env"},
+    }
     request_data = {
-        "headers": {"x-exl-signature": "YifQGpYh7FgeVVY63/aAjzQePWCLbHrm3xW8DchQARk="},
+        "headers": {"x-exl-signature": "foo"},
         "requestContext": {"http": {"method": "POST"}},
-        "body": '{"action": "JOB_END", "job_instance": {"name": "TIMDEX Export to '
-        'other-env"}}',
+        "body": json.dumps(request_body),
     }
     expected_output = {
         "headers": {"Content-Type": "text/plain"},
@@ -150,11 +159,17 @@ def test_webhook_handles_post_request_job_for_different_env(caplog):
     )
 
 
-def test_webhook_handles_post_request_job_end_not_pod_or_timdex_export_job(caplog):
+def test_webhook_handles_post_request_job_end_unknown_job(
+    caplog, mocked_valid_signature
+):
+    request_body = {
+        "action": "JOB_END",
+        "job_instance": {"name": "This is Wrong"},
+    }
     request_data = {
-        "headers": {"x-exl-signature": "OF8TmEjIF1kyEKgTP6CPkLnPidGHQMpE5EdD7Pu9l10="},
+        "headers": {"x-exl-signature": "foo"},
         "requestContext": {"http": {"method": "POST"}},
-        "body": '{"action": "JOB_END", "job_instance": {"name": "This is Wrong"}}',
+        "body": json.dumps(request_body),
     }
     expected_output = {
         "headers": {"Content-Type": "text/plain"},
@@ -164,17 +179,27 @@ def test_webhook_handles_post_request_job_end_not_pod_or_timdex_export_job(caplo
     }
     assert lambda_handler(request_data, {}) == expected_output
     assert (
-        "POST request received and validated, no action triggered. Returning 200 "
+        "POST request received and validated, no action triggered for job: "
+        "'This is Wrong'. Returning 200 "
         "success response." in caplog.text
     )
 
 
-def test_webhook_handles_post_request_job_end_job_failed(caplog):
+def test_webhook_handles_post_request_job_end_job_failed(
+    caplog, mocked_valid_signature
+):
+    request_body = {
+        "action": "JOB_END",
+        "job_instance": {
+            "name": "PPOD Export to Test",
+            "status": {"value": "COMPLETED_FAILED"},
+        },
+    }
+
     request_data = {
-        "headers": {"x-exl-signature": "61cGEIufaH8zuuysJzNf/6VuD7DoYmnZm6KxRR45A+A="},
+        "headers": {"x-exl-signature": "foo"},
         "requestContext": {"http": {"method": "POST"}},
-        "body": '{"action": "JOB_END", "job_instance": {'
-        '"name": "PPOD Export to Test", "status": {"value": "COMPLETED_FAILED"}}}',
+        "body": json.dumps(request_body),
     }
     expected_output = {
         "headers": {"Content-Type": "text/plain"},
@@ -192,7 +217,9 @@ def test_webhook_handles_post_request_job_end_job_failed(caplog):
     ) in caplog.record_tuples
 
 
-def test_webhook_handles_post_request_job_end_no_records_exported(caplog):
+def test_webhook_handles_post_request_job_end_no_records_exported(
+    caplog, mocked_valid_signature
+):
     request_body = {
         "action": "JOB_END",
         "job_instance": {
@@ -221,7 +248,7 @@ def test_webhook_handles_post_request_job_end_no_records_exported(caplog):
         },
     }
     request_data = {
-        "headers": {"x-exl-signature": "N/0nwlIWrJukvs0G3Ltgx9O1rNRiyAMw0ckQ8MxbLjU="},
+        "headers": {"x-exl-signature": "foo"},
         "requestContext": {"http": {"method": "POST"}},
         "body": json.dumps(request_body),
     }
@@ -241,7 +268,7 @@ def test_webhook_handles_post_request_job_end_no_records_exported(caplog):
 
 @freeze_time("2022-05-01")
 def test_webhook_handles_post_request_pod_export_job_success(
-    caplog, stubbed_ppod_sfn_client
+    caplog, stubbed_ppod_sfn_client, mocked_valid_signature
 ):
     request_body = {
         "action": "JOB_END",
@@ -258,7 +285,7 @@ def test_webhook_handles_post_request_pod_export_job_success(
         },
     }
     request_data = {
-        "headers": {"x-exl-signature": "hTk8pLznD09nasQ0lT0EsCDQewQtP+yr/wuT9LSxJKw="},
+        "headers": {"x-exl-signature": "foo"},
         "requestContext": {"http": {"method": "POST"}},
         "body": json.dumps(request_body),
     }
@@ -280,7 +307,7 @@ def test_webhook_handles_post_request_pod_export_job_success(
 
 @freeze_time("2022-05-01")
 def test_webhook_handles_post_request_timdex_export_job_success(
-    caplog, stubbed_timdex_sfn_client
+    caplog, stubbed_timdex_sfn_client, mocked_valid_signature
 ):
     request_body = {
         "action": "JOB_END",
@@ -297,7 +324,7 @@ def test_webhook_handles_post_request_timdex_export_job_success(
         },
     }
     request_data = {
-        "headers": {"x-exl-signature": "VT+tvy6pwbEm7BBjKB7qCyRg+S52zZ3N6HXxiBVEvN0="},
+        "headers": {"x-exl-signature": "foo"},
         "requestContext": {"http": {"method": "POST"}},
         "body": json.dumps(request_body),
     }
@@ -320,6 +347,58 @@ def test_webhook_handles_post_request_timdex_export_job_success(
     )
 
 
+@freeze_time("2022-05-01")
+def test_webhook_handles_post_request_bursar_export_job_success(
+    caplog, stubbed_bursar_sfn_client, mocked_valid_signature
+):
+    request_body = {
+        "action": "JOB_END",
+        "job_instance": {
+            "name": "Export to bursar using profile Bursar Export to test",
+            "id": "test id",
+            "end_time": "2022-05-01T14:55:14.894Z",
+            "status": {"value": "COMPLETED_SUCCESS"},
+            "counter": [
+                {
+                    "type": {
+                        "value": "com.exlibris.external.bursar.report.user_count",
+                        "desc": "Total number of users",
+                    },
+                    "value": "5",
+                },
+                {
+                    "type": {
+                        "value": "com.exlibris.external.bursar.report.fines_fees_count",
+                        "desc": "Total number of fines and fees",
+                    },
+                    "value": "20",
+                },
+            ],
+        },
+    }
+    request_data = {
+        "headers": {"x-exl-signature": "foo"},
+        "requestContext": {"http": {"method": "POST"}},
+        "body": json.dumps(request_body),
+    }
+    expected_output = {
+        "headers": {"Content-Type": "text/plain"},
+        "isBase64Encoded": False,
+        "statusCode": 200,
+        "body": "Webhook POST request received and validated, BURSAR pipeline initiated.",
+    }
+    with patch("boto3.client") as mocked_boto_client:
+        mocked_boto_client.return_value = stubbed_bursar_sfn_client
+        assert lambda_handler(request_data, {}) == expected_output
+    assert (
+        "BURSAR export from Alma completed successfully, initiating BURSAR step function."
+        in caplog.text
+    )
+    assert (
+        "BURSAR step function executed, returning 200 success response." in caplog.text
+    )
+
+
 def test_validate_missing_signature_returns_false():
     request_data = {
         "requestContext": {"http": {"method": "POST"}},
@@ -334,6 +413,18 @@ def test_validate_invalid_signature_returns_false(post_request_invalid_signature
 
 def test_validate_valid_signature_returns_true(post_request_valid_signature):
     assert valid_signature(post_request_valid_signature) is True
+
+
+def test_get_job_type_warning_if_env_missing(caplog, monkeypatch):
+    job_name = "TIMDEX Export to Test Full"
+    monkeypatch.delenv("ALMA_TIMDEX_EXPORT_JOB_NAME_PREFIX")
+    reload(webhook)
+    with pytest.raises(ValueError):
+        webhook.get_job_type(job_name)
+    assert (
+        "expected env var not present: ALMA_TIMDEX_EXPORT_JOB_NAME_PREFIX"
+        in caplog.text
+    )
 
 
 def test_count_exported_records_with_no_records_exported():

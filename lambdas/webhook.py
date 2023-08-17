@@ -4,6 +4,7 @@ import json
 import logging
 import os
 from datetime import datetime
+from typing import Callable
 
 import boto3
 import sentry_sdk
@@ -116,16 +117,14 @@ def valid_signature(event: dict) -> bool:
 
 def handle_job_end_webhook(message_body: dict) -> dict:
     job_name = message_body["job_instance"]["name"]
-    if job_name.startswith(os.environ["ALMA_POD_EXPORT_JOB_NAME"]):
-        logger.info("PPOD export job webhook received.")
-        job_type = "PPOD"
-    elif job_name.startswith(os.environ["ALMA_TIMDEX_EXPORT_JOB_NAME_PREFIX"]):
-        logger.info("TIMDEX export job webhook received.")
-        job_type = "TIMDEX"
-    else:
+
+    try:
+        job_type, generate_step_function_input = get_job_type(job_name)
+    except ValueError as e:
         logger.info(
-            "POST request received and validated, no action triggered. Returning 200 "
-            "success response."
+            "POST request received and validated, no action triggered for job: '%s'. "
+            "Returning 200 success response.",
+            e,
         )
         return {
             "statusCode": 200,
@@ -174,11 +173,9 @@ def handle_job_end_webhook(message_body: dict) -> dict:
         job_type,
         job_type,
     )
-    job_date = message_body["job_instance"]["end_time"][:10]
+
     state_machine_arn = os.environ[f"{job_type}_STATE_MACHINE_ARN"]
-    step_function_input, execution_name = generate_step_function_input(
-        job_date, job_name, job_type
-    )
+    step_function_input, execution_name = generate_step_function_input(message_body)
     execute_state_machine(state_machine_arn, step_function_input, execution_name)
     logger.info("%s step function executed, returning 200 success response.", job_type)
     return {
@@ -188,11 +185,49 @@ def handle_job_end_webhook(message_body: dict) -> dict:
     }
 
 
+def get_job_type(job_name: str) -> tuple[str, Callable]:
+    """Given an expected job name from the Alma webhook POST request, return the job type
+    and corresponding function for generating the step function input.
+    """
+    job_types = [
+        (
+            "PPOD",
+            "ALMA_POD_EXPORT_JOB_NAME",
+            generate_ppod_step_function_input,
+            "PPOD export job webhook received.",
+        ),
+        (
+            "TIMDEX",
+            "ALMA_TIMDEX_EXPORT_JOB_NAME_PREFIX",
+            generate_timdex_step_function_input,
+            "TIMDEX export job webhook received.",
+        ),
+        (
+            "BURSAR",
+            "ALMA_BURSAR_EXPORT_JOB_NAME_PREFIX",
+            generate_bursar_step_function_input,
+            "BURSAR export job webhook received.",
+        ),
+    ]
+
+    for job_type, env_key, step_function_input_handler, log_msg in job_types:
+        job_name_prefix = os.getenv(env_key)
+        if not job_name_prefix:
+            logger.warning("expected env var not present: %s" % env_key)
+        if job_name_prefix and job_name.startswith(job_name_prefix):
+            logger.info(log_msg)
+            return job_type, step_function_input_handler
+
+    # if job type not matched, raise exception
+    raise ValueError(job_name)
+
+
 def count_exported_records(counter: list[dict]) -> int:
     exported_record_types = [
         "label.new.records",
         "label.updated.records",
         "label.deleted.records",
+        "com.exlibris.external.bursar.report.fines_fees_count",
     ]
     count = sum(
         [
@@ -204,26 +239,38 @@ def count_exported_records(counter: list[dict]) -> int:
     return count
 
 
-def generate_step_function_input(
-    job_date: str, job_name: str, job_type: str
-) -> tuple[str, str]:
+def generate_ppod_step_function_input(message_body) -> tuple[str, str]:
     timestamp = datetime.now().strftime("%Y-%m-%dt%H-%M-%S")
-    if job_type == "PPOD":
-        result = {
-            "filename-prefix": "exlibris/pod/POD_ALMA_EXPORT_"
-            f"{job_date.replace('-', '')}"
-        }
-        execution_name = f"ppod-upload-{timestamp}"
-    elif job_type == "TIMDEX":
-        run_type = job_name.split()[-1].lower()
-        result = {
-            "next-step": "transform",
-            "run-date": job_date,
-            "run-type": run_type,
-            "source": "alma",
-            "verbose": "true",
-        }
-        execution_name = f"alma-{run_type}-ingest-{timestamp}"
+    job_date = message_body["job_instance"]["end_time"][:10]
+    result = {
+        "filename-prefix": "exlibris/pod/POD_ALMA_EXPORT_"
+        f"{job_date.replace('-', '')}"
+    }
+    execution_name = f"ppod-upload-{timestamp}"
+    return json.dumps(result), execution_name
+
+
+def generate_timdex_step_function_input(message_body) -> tuple[str, str]:
+    timestamp = datetime.now().strftime("%Y-%m-%dt%H-%M-%S")
+    job_date = message_body["job_instance"]["end_time"][:10]
+    run_type = message_body["job_instance"]["name"].split()[-1].lower()
+    result = {
+        "next-step": "transform",
+        "run-date": job_date,
+        "run-type": run_type,
+        "source": "alma",
+        "verbose": "true",
+    }
+    execution_name = f"alma-{run_type}-ingest-{timestamp}"
+    return json.dumps(result), execution_name
+
+
+def generate_bursar_step_function_input(message_body) -> tuple[str, str]:
+    result = {
+        "job_id": message_body["job_instance"]["id"],
+        "job_name": message_body["job_instance"]["name"],
+    }
+    execution_name = "bursar"
     return json.dumps(result), execution_name
 
 

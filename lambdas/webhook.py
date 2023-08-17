@@ -187,20 +187,39 @@ def handle_job_end_webhook(message_body: dict) -> dict:
 
 def get_job_type(job_name: str) -> tuple[str, Callable]:
     """Given an expected job name from the Alma webhook POST request, return the job type
-    and corresponding function for generating the step
-    function input.
+    and corresponding function for generating the step function input.
     """
-    if job_name.startswith(os.environ["ALMA_POD_EXPORT_JOB_NAME"]):
-        logger.info("PPOD export job webhook received.")
-        return "PPOD", generate_ppod_step_function_input
-    elif job_name.startswith(os.environ["ALMA_TIMDEX_EXPORT_JOB_NAME_PREFIX"]):
-        logger.info("TIMDEX export job webhook received.")
-        return "TIMDEX", generate_timdex_step_function_input
-    elif job_name.startswith(os.environ["ALMA_BURSAR_EXPORT_JOB_NAME_PREFIX"]):
-        logger.info("BURSAR export job webhook received.")
-        return "BURSAR", generate_bursar_step_function_input
-    else:
-        raise ValueError(job_name)
+    job_types = [
+        (
+            "PPOD",
+            "ALMA_POD_EXPORT_JOB_NAME",
+            generate_ppod_step_function_input,
+            "PPOD export job webhook received.",
+        ),
+        (
+            "TIMDEX",
+            "ALMA_TIMDEX_EXPORT_JOB_NAME_PREFIX",
+            generate_timdex_step_function_input,
+            "TIMDEX export job webhook received.",
+        ),
+        (
+            "BURSAR",
+            "ALMA_BURSAR_EXPORT_JOB_NAME_PREFIX",
+            generate_bursar_step_function_input,
+            "BURSAR export job webhook received.",
+        ),
+    ]
+
+    for job_type, env_key, step_function_input_handler, log_msg in job_types:
+        job_name_prefix = os.getenv(env_key)
+        if not job_name_prefix:
+            logger.warning("expected env var not present: %s" % env_key)
+        if job_name_prefix and job_name.startswith(job_name_prefix):
+            logger.info(log_msg)
+            return job_type, step_function_input_handler
+
+    # if job type not matched, raise exception
+    raise ValueError(job_name)
 
 
 def count_exported_records(counter: list[dict]) -> int:

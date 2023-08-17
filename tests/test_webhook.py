@@ -415,6 +415,18 @@ def test_validate_valid_signature_returns_true(post_request_valid_signature):
     assert valid_signature(post_request_valid_signature) is True
 
 
+def test_get_job_type_warning_if_env_missing(caplog, monkeypatch):
+    job_name = "TIMDEX Export to Test Full"
+    monkeypatch.delenv("ALMA_TIMDEX_EXPORT_JOB_NAME_PREFIX")
+    reload(webhook)
+    with pytest.raises(ValueError):
+        webhook.get_job_type(job_name)
+    assert (
+        "expected env var not present: ALMA_TIMDEX_EXPORT_JOB_NAME_PREFIX"
+        in caplog.text
+    )
+
+
 def test_count_exported_records_with_no_records_exported():
     counter = [
         {

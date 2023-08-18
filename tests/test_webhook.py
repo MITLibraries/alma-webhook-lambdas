@@ -1,5 +1,5 @@
-import datetime
 import json
+from datetime import UTC, datetime
 from importlib import reload
 from unittest.mock import patch
 
@@ -19,8 +19,7 @@ def test_webhook_configures_sentry_if_dsn_present(caplog, monkeypatch):
     monkeypatch.setenv("SENTRY_DSN", "https://1234567890@00000.ingest.sentry.io/123456")
     reload(webhook)
     assert (
-        "Sentry DSN found, exceptions will be sent to Sentry with env=test"
-        in caplog.text
+        "Sentry DSN found, exceptions will be sent to Sentry with env=test" in caplog.text
     )
 
 
@@ -159,9 +158,7 @@ def test_webhook_handles_post_request_job_for_different_env(
     )
 
 
-def test_webhook_handles_post_request_job_end_unknown_job(
-    caplog, mocked_valid_signature
-):
+def test_webhook_handles_post_request_job_end_unknown_job(caplog, mocked_valid_signature):
     request_body = {
         "action": "JOB_END",
         "job_instance": {"name": "This is Wrong"},
@@ -185,9 +182,7 @@ def test_webhook_handles_post_request_job_end_unknown_job(
     )
 
 
-def test_webhook_handles_post_request_job_end_job_failed(
-    caplog, mocked_valid_signature
-):
+def test_webhook_handles_post_request_job_end_job_failed(caplog, mocked_valid_signature):
     request_body = {
         "action": "JOB_END",
         "job_instance": {
@@ -342,9 +337,7 @@ def test_webhook_handles_post_request_timdex_export_job_success(
         "TIMDEX export from Alma completed successfully, initiating TIMDEX step "
         "function." in caplog.text
     )
-    assert (
-        "TIMDEX step function executed, returning 200 success response." in caplog.text
-    )
+    assert "TIMDEX step function executed, returning 200 success response." in caplog.text
 
 
 @freeze_time("2022-05-01")
@@ -394,9 +387,7 @@ def test_webhook_handles_post_request_bursar_export_job_success(
         "BURSAR export from Alma completed successfully, initiating BURSAR step function."
         in caplog.text
     )
-    assert (
-        "BURSAR step function executed, returning 200 success response." in caplog.text
-    )
+    assert "BURSAR step function executed, returning 200 success response." in caplog.text
 
 
 def test_validate_missing_signature_returns_false():
@@ -419,11 +410,10 @@ def test_get_job_type_warning_if_env_missing(caplog, monkeypatch):
     job_name = "TIMDEX Export to Test Full"
     monkeypatch.delenv("ALMA_TIMDEX_EXPORT_JOB_NAME_PREFIX")
     reload(webhook)
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="TIMDEX Export to Test Full"):
         webhook.get_job_type(job_name)
     assert (
-        "expected env var not present: ALMA_TIMDEX_EXPORT_JOB_NAME_PREFIX"
-        in caplog.text
+        "Expected env var not present: ALMA_TIMDEX_EXPORT_JOB_NAME_PREFIX" in caplog.text
     )
 
 
@@ -516,7 +506,7 @@ def test_count_exported_records_with_records_exported():
             "value": "0",
         },
     ]
-    assert count_exported_records(counter) == 6
+    assert count_exported_records(counter) == 6  # noqa: PLR2004
 
 
 @freeze_time("2022-05-01")
@@ -530,5 +520,5 @@ def test_execute_state_machine_success(stubbed_ppod_sfn_client):
         )
     assert response == {
         "executionArn": "arn:aws:states:us-east-1:account:execution:ppod-test:12345",
-        "startDate": datetime.datetime(2022, 5, 1),
+        "startDate": datetime(2022, 5, 1, tzinfo=UTC),
     }

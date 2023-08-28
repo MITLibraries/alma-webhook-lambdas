@@ -1,12 +1,14 @@
 import datetime
 import os
 import urllib
+from importlib import reload
 
 import botocore.session
 import pytest
 import requests_mock
 from botocore.stub import Stubber
 
+import lambdas.webhook
 from lambdas.webhook import lambda_handler
 
 
@@ -18,9 +20,9 @@ def _test_env():
     os.environ["AWS_SECURITY_TOKEN"] = "testing"
     os.environ["AWS_SESSION_TOKEN"] = "testing"
     os.environ["ALMA_CHALLENGE_SECRET"] = "itsasecret"
-    os.environ["ALMA_POD_EXPORT_JOB_NAME"] = "PPOD Export"
-    os.environ["ALMA_TIMDEX_EXPORT_JOB_NAME_PREFIX"] = "TIMDEX Export"
-    os.environ["ALMA_BURSAR_EXPORT_JOB_NAME_PREFIX"] = "Export to bursar"
+    os.environ["ALMA_POD_EXPORT_JOB_NAME"] = "PPOD Export to test"
+    os.environ["ALMA_TIMDEX_EXPORT_JOB_NAME_PREFIX"] = "TIMDEX Export to test"
+    os.environ["ALMA_BURSAR_EXPORT_JOB_NAME"] = "Bursar Export to test"
     os.environ["LAMBDA_FUNCTION_URL"] = "http://example.com/lambda"
     os.environ[
         "PPOD_STATE_MACHINE_ARN"
@@ -83,6 +85,7 @@ def post_request_callback(request, context):
         "requestContext": {"http": {"method": request.method}},
         "body": request.body.decode(),
     }
+    reload(lambdas.webhook)
     response = lambda_handler(request_data, {})
     return response["body"]
 
@@ -145,9 +148,7 @@ def stubbed_bursar_sfn_client():
     }
     expected_params = {
         "stateMachineArn": "arn:aws:states:us-east-1:account:stateMachine:bursar-test",
-        "input": '{"job_id": "test id", "job_name": "Export to bursar using profile '
-        "Bursar "
-        'Export to test"}',
+        "input": '{"job_id": "test id", "job_name": "Bursar Export to test"}',
         "name": "bursar",
     }
     with Stubber(sfn) as stubber:

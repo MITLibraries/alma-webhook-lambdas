@@ -24,5 +24,6 @@ def test_send_get_to_lambda_function_url(mocked_lambda_function_url):
 def test_send_post_to_lambda_function_url(mocked_lambda_function_url):
     assert (
         send_post_to_lambda_function_url(SAMPLE_WEBHOOK_POST_BODY)
-        == "Webhook POST request received and validated, no action taken."
+        == "Webhook POST request received and validated in test env for job 'Not a POD "
+        "export job', no action taken."
     )

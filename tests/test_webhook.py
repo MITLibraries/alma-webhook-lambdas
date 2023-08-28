@@ -152,7 +152,7 @@ def test_webhook_handles_post_request_job_for_different_env(
     }
     assert lambda_handler(request_data, {}) == expected_output
     assert (
-        "Job 'TIMDEX Export to other-env' was for a different environment (current "
+        "Alma job 'TIMDEX Export to other-env' was for a different environment (current "
         "environment is test), no action triggered. Returning 200 success response."
         in caplog.text
     )
@@ -161,7 +161,7 @@ def test_webhook_handles_post_request_job_for_different_env(
 def test_webhook_handles_post_request_job_end_unknown_job(caplog, mocked_valid_signature):
     request_body = {
         "action": "JOB_END",
-        "job_instance": {"name": "This is Wrong"},
+        "job_instance": {"name": "FOO EXPORT to test"},
     }
     request_data = {
         "headers": {"x-exl-signature": "foo"},
@@ -177,7 +177,7 @@ def test_webhook_handles_post_request_job_end_unknown_job(caplog, mocked_valid_s
     assert lambda_handler(request_data, {}) == expected_output
     assert (
         "POST request received and validated, no action triggered for job: "
-        "'This is Wrong'. Returning 200 "
+        "'FOO EXPORT to test'. Returning 200 "
         "success response." in caplog.text
     )
 
@@ -186,7 +186,7 @@ def test_webhook_handles_post_request_job_end_job_failed(caplog, mocked_valid_si
     request_body = {
         "action": "JOB_END",
         "job_instance": {
-            "name": "PPOD Export to Test",
+            "name": "PPOD Export to test",
             "status": {"value": "COMPLETED_FAILED"},
         },
     }
@@ -200,15 +200,16 @@ def test_webhook_handles_post_request_job_end_job_failed(caplog, mocked_valid_si
         "headers": {"Content-Type": "text/plain"},
         "isBase64Encoded": False,
         "statusCode": 200,
-        "body": "Webhook POST request received and validated, PPOD export job failed "
+        "body": "Webhook POST request received and validated, "
+        "Alma job 'PPOD Export to test' failed "
         "so no action was taken.",
     }
     assert lambda_handler(request_data, {}) == expected_output
     assert (
         "lambdas.webhook",
         30,
-        "PPOD export job did not complete successfully, may need investigation. "
-        "Returning 200 success response.",
+        "Alma job 'PPOD Export to test' did not complete successfully, "
+        "may need investigation. Returning 200 success response.",
     ) in caplog.record_tuples
 
 
@@ -218,7 +219,7 @@ def test_webhook_handles_post_request_job_end_no_records_exported(
     request_body = {
         "action": "JOB_END",
         "job_instance": {
-            "name": "TIMDEX Export to Test",
+            "name": "TIMDEX Export to test",
             "status": {"value": "COMPLETED_SUCCESS"},
             "counter": [
                 {
@@ -251,13 +252,13 @@ def test_webhook_handles_post_request_job_end_no_records_exported(
         "headers": {"Content-Type": "text/plain"},
         "isBase64Encoded": False,
         "statusCode": 200,
-        "body": "Webhook POST request received and validated, TIMDEX export job "
-        "exported zero records so no action was taken.",
+        "body": "Webhook POST request received and validated, Alma job 'TIMDEX Export to "
+        "test' exported zero records so no action was taken.",
     }
     assert lambda_handler(request_data, {}) == expected_output
     assert (
-        "TIMDEX job did not export any records, no action needed. Returning 200 "
-        "success response." in caplog.text
+        "Alma job 'TIMDEX Export to test' did not export any records, "
+        "no action needed. Returning 200 success response." in caplog.text
     )
 
 
@@ -268,7 +269,7 @@ def test_webhook_handles_post_request_pod_export_job_success(
     request_body = {
         "action": "JOB_END",
         "job_instance": {
-            "name": "PPOD Export to Test",
+            "name": "PPOD Export to test",
             "end_time": "2022-05-01T14:55:14.894Z",
             "status": {"value": "COMPLETED_SUCCESS"},
             "counter": [
@@ -307,7 +308,7 @@ def test_webhook_handles_post_request_timdex_export_job_success(
     request_body = {
         "action": "JOB_END",
         "job_instance": {
-            "name": "TIMDEX Export to Test FULL",
+            "name": "TIMDEX Export to test FULL",
             "end_time": "2022-05-01T14:55:14.894Z",
             "status": {"value": "COMPLETED_SUCCESS"},
             "counter": [
@@ -347,7 +348,7 @@ def test_webhook_handles_post_request_bursar_export_job_success(
     request_body = {
         "action": "JOB_END",
         "job_instance": {
-            "name": "Export to bursar using profile Bursar Export to test",
+            "name": "Bursar Export to test",
             "id": "test id",
             "end_time": "2022-05-01T14:55:14.894Z",
             "status": {"value": "COMPLETED_SUCCESS"},
@@ -410,7 +411,7 @@ def test_get_job_type_warning_if_env_missing(caplog, monkeypatch):
     job_name = "TIMDEX Export to Test Full"
     monkeypatch.delenv("ALMA_TIMDEX_EXPORT_JOB_NAME_PREFIX")
     reload(webhook)
-    with pytest.raises(ValueError, match="TIMDEX Export to Test Full"):
+    with pytest.raises(webhook.JobTypeError):
         webhook.get_job_type(job_name)
     assert (
         "Expected env var not present: ALMA_TIMDEX_EXPORT_JOB_NAME_PREFIX" in caplog.text

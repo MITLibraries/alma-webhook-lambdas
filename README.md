@@ -20,9 +20,9 @@ In addition, we have two Alma instances (sandbox and production), but three AWS 
 Required env variables:
 
 - `ALMA_CHALLENGE_SECRET=itsasecret`: this value will work with the test fixtures, must match Alma sandbox/prod configured challenge secrets in Dev1, stage, and prod environments.
-- `ALMA_BURSAR_EXPORT_JOB_NAME_PREFIX`: the exact name of the Bursar export job in Alma, _up to the point where it differs by env and export type_, e.g. "Export to bursar using profile Bursar Export to". Must match Alma sandbox/prod configured job names.
-- `ALMA_POD_EXPORT_JOB_NAME`: the exact name of the POD export job in Alma, _up to the point where it differs by env_, e.g. "Publishing Platform Job PPOD EXPORT". Must match Alma sandbox/prod configured job names.
-- `ALMA_TIMDEX_EXPORT_JOB_NAME_PREFIX`: the exact name of the TIMDEX export job in Alma, _up to the point where it differs by env and export type_, e.g. "Publishing Platform Job TIMDEX EXPORT". Must match Alma sandbox/prod configured job names.
+- `ALMA_BURSAR_EXPORT_JOB_NAME`: the exact name of the Bursar export job in Alma. Must match Alma sandbox/prod configured job names.
+- `ALMA_POD_EXPORT_JOB_NAME`: the exact name of the POD export job in Alma. Must match Alma sandbox/prod configured job names.
+- `ALMA_TIMDEX_EXPORT_JOB_NAME_PREFIX`: the exact name of the TIMDEX export job in Alma, _up to the point where it differs export type_, e.g. "Publishing Platform Job TIMDEX EXPORT to Dev1". Must match Alma sandbox/prod configured job names.
 - `BURSAR_STATE_MACHINE_ARN`: the arn of the step functions Bursar state machine. Specific to each environment.
 - `PPOD_STATE_MACHINE_ARN`: the arn of the step functions PPOD state machine. Specific to each environment.
 - `TIMDEX_STATE_MACHINE_ARN`: the arn of the step functions TIMDEX state machine. Specific to each environment.

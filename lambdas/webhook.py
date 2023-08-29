@@ -29,6 +29,10 @@ else:
     logger.info("No Sentry DSN found, exceptions will not be sent to Sentry")
 
 
+class JobTypeError(Exception):
+    """Exception raised when unknown job name received."""
+
+
 def lambda_handler(event: dict, context: object) -> dict[str, object]:  # noqa: ARG001
     logger.debug(json.dumps(event))
 
@@ -118,9 +122,22 @@ def valid_signature(event: dict) -> bool:
 def handle_job_end_webhook(message_body: dict) -> dict:
     job_name = message_body["job_instance"]["name"]
 
+    if str(env).lower() not in job_name.lower():
+        logger.info(
+            "Alma job '%s' was for a different environment (current environment is %s), "
+            "no action triggered. Returning 200 success response.",
+            job_name,
+            env,
+        )
+        return {
+            "statusCode": 200,
+            "body": f"Webhook POST request received and validated in {env} env for job "
+            f"'{job_name}', no action taken.",
+        }
+
     try:
         job_type, generate_step_function_input = get_job_type(job_name)
-    except ValueError as e:
+    except JobTypeError as e:
         logger.info(
             "POST request received and validated, no action triggered for job: '%s'. "
             "Returning 200 success response.",
@@ -131,41 +148,28 @@ def handle_job_end_webhook(message_body: dict) -> dict:
             "body": "Webhook POST request received and validated, no action taken.",
         }
 
-    if str(env).lower() not in job_name.lower():
-        logger.info(
-            "Job '%s' was for a different environment (current environment is %s), no "
-            "action triggered. Returning 200 success response.",
-            job_name,
-            env,
-        )
-        return {
-            "statusCode": 200,
-            "body": f"Webhook POST request received and validated in {env} env for job "
-            f"'{job_name}', no action taken.",
-        }
-
     if message_body["job_instance"]["status"]["value"] != "COMPLETED_SUCCESS":
         logger.warning(
-            "%s export job did not complete successfully, may need investigation. "
+            "Alma job '%s' did not complete successfully, may need investigation. "
             "Returning 200 success response.",
-            job_type,
+            job_name,
         )
         return {
             "statusCode": 200,
-            "body": f"Webhook POST request received and validated, {job_type} export "
-            "job failed so no action was taken.",
+            "body": f"Webhook POST request received and validated, Alma job '{job_name}' "
+            "failed so no action was taken.",
         }
 
     if count_exported_records(message_body["job_instance"]["counter"]) == 0:
-        logger.info(
-            "%s job did not export any records, no action needed. Returning 200 "
+        logger.warning(
+            "Alma job '%s' did not export any records, no action needed. Returning 200 "
             "success response.",
-            job_type,
+            job_name,
         )
         return {
             "statusCode": 200,
-            "body": f"Webhook POST request received and validated, {job_type} "
-            "export job exported zero records so no action was taken.",
+            "body": f"Webhook POST request received and validated, Alma job '{job_name}' "
+            "exported zero records so no action was taken.",
         }
 
     logger.info(
@@ -206,7 +210,7 @@ def get_job_type(job_name: str) -> tuple[str, Callable]:
         ),
         (
             "BURSAR",
-            "ALMA_BURSAR_EXPORT_JOB_NAME_PREFIX",
+            "ALMA_BURSAR_EXPORT_JOB_NAME",
             generate_bursar_step_function_input,
             "BURSAR export job webhook received.",
         ),
@@ -221,7 +225,7 @@ def get_job_type(job_name: str) -> tuple[str, Callable]:
             return job_type, step_function_input_handler
 
     # if job type not matched, raise exception
-    raise ValueError(job_name)
+    raise JobTypeError(job_name)
 
 
 def count_exported_records(counter: list[dict]) -> int:

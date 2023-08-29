@@ -30,7 +30,7 @@ else:
 
 
 class JobTypeError(Exception):
-    """Exception raised when unknow job name recieved."""
+    """Exception raised when unknown job name received."""
 
 
 def lambda_handler(event: dict, context: object) -> dict[str, object]:  # noqa: ARG001

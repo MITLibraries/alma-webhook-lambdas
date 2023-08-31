@@ -1,5 +1,4 @@
 from lambdas.helpers import (
-    SAMPLE_WEBHOOK_POST_BODY,
     generate_signature,
     send_get_to_lambda_function_url,
     send_post_to_lambda_function_url,
@@ -21,9 +20,11 @@ def test_send_get_to_lambda_function_url(mocked_lambda_function_url):
     assert send_get_to_lambda_function_url("hello, lambda!") == "hello, lambda!"
 
 
-def test_send_post_to_lambda_function_url(mocked_lambda_function_url):
+def test_send_post_to_lambda_function_url(
+    mocked_lambda_function_url, sample_webhook_post_body
+):
     assert (
-        send_post_to_lambda_function_url(SAMPLE_WEBHOOK_POST_BODY)
+        send_post_to_lambda_function_url(sample_webhook_post_body)
         == "Webhook POST request received and validated in test env for job 'Not a POD "
         "export job', no action taken."
     )

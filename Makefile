@@ -26,6 +26,9 @@ test: # Run tests and print a coverage report
 	pipenv run coverage run --source=lambdas -m pytest -vv -m "not integration"
 	pipenv run coverage report -m
 
+coveralls: test
+	pipenv run coverage lcov -o ./coverage/lcov.info
+
 test-integration:
 	pipenv run pytest -vv -s -m "integration"
 

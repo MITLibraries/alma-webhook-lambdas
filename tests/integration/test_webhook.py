@@ -21,8 +21,11 @@ from lambdas.helpers import (
 )
 
 
-def get_step_function_invocation(step_function_arn: str, timeout: int = 15) -> dict:
-    """Retrieve RUNNING StepFunction invocation, parse input JSON for first event"""
+def get_step_function_invocation_results(
+    step_function_arn: str,
+    timeout: int = 15,
+) -> dict:
+    """Retrieve results from RUNNING StepFunction invocation and parse 0th event."""
     sfn_client = boto3.client("stepfunctions")
     t0 = time.time()
     while True:
@@ -56,7 +59,7 @@ def get_step_function_invocation(step_function_arn: str, timeout: int = 15) -> d
 
 
 @pytest.mark.integration()
-@pytest.mark.usefixtures("_set_integration_tests_env_vars")
+@pytest.mark.usefixtures("_set_integration_test_environ")
 def test_integration_webhook_handles_get_request_success():
     """Test that deployed lambda can receive GET requsts"""
     challenge_phrase = "challenge-accepted"
@@ -65,7 +68,7 @@ def test_integration_webhook_handles_get_request_success():
 
 
 @pytest.mark.integration()
-@pytest.mark.usefixtures("_set_integration_tests_env_vars")
+@pytest.mark.usefixtures("_set_integration_test_environ")
 def test_integration_webhook_handles_post_request_but_no_job_type_match():
     """Test that deployed lambda can receive POST requests and skips unknown job type"""
     payload = {"action": "JOB_END", "job_instance": {"name": "Unhandled Job Name Here"}}
@@ -77,7 +80,7 @@ def test_integration_webhook_handles_post_request_but_no_job_type_match():
 
 
 @pytest.mark.integration()
-@pytest.mark.usefixtures("_set_integration_tests_env_vars")
+@pytest.mark.usefixtures("_set_integration_test_environ")
 @pytest.mark.usefixtures("_integration_tests_s3_fixtures")
 def test_integration_webhook_handles_pod_step_function_trigger(
     sample_pod_export_job_end_webhook_post_body,
@@ -98,7 +101,7 @@ def test_integration_webhook_handles_pod_step_function_trigger(
 
     # assert StepFunction running and with expected payload
     step_function_arn = os.getenv("PPOD_STATE_MACHINE_ARN")
-    step_function_input_json = get_step_function_invocation(step_function_arn)
+    step_function_input_json = get_step_function_invocation_results(step_function_arn)
     assert (
         step_function_input_json["filename-prefix"]
         == "exlibris/pod/POD_ALMA_EXPORT_20230815"
@@ -106,7 +109,7 @@ def test_integration_webhook_handles_pod_step_function_trigger(
 
 
 @pytest.mark.integration()
-@pytest.mark.usefixtures("_set_integration_tests_env_vars")
+@pytest.mark.usefixtures("_set_integration_test_environ")
 @pytest.mark.usefixtures("_integration_tests_s3_fixtures")
 def test_integration_webhook_handles_timdex_step_function_trigger(
     sample_timdex_export_job_end_webhook_post_body,
@@ -127,7 +130,7 @@ def test_integration_webhook_handles_timdex_step_function_trigger(
 
     # assert StepFunction running and with expected payload
     step_function_arn = os.getenv("TIMDEX_STATE_MACHINE_ARN")
-    step_function_input_json = get_step_function_invocation(step_function_arn)
+    step_function_input_json = get_step_function_invocation_results(step_function_arn)
     assert step_function_input_json["next-step"] == "transform"
     assert step_function_input_json["run-date"] == "2023-08-15"
     assert step_function_input_json["run-type"] == "daily"

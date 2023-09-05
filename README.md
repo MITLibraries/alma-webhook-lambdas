@@ -29,61 +29,33 @@ Required env variables:
 - `WORKSPACE=dev`: env for local development, set by Terraform in AWS environments.
 - `SENTRY_DSN`: only needed in production.
 
-### To verify local changes in Dev1
+### Integration Tests for Dev1
 
-- Ensure your aws cli is configured with credentials for the Dev1 account.
-- Ensure you have the above env variables set in your .env, matching those in our Dev1 environment.
-- Add the following to your .env: `LAMBDA_FUNCTION_URL=<the Dev1 lambda function URL>`
-- Publish the lambda function:
+Some minimal integration tests are provided for checking the deployed webhook handling lambda, defined as `integration` type pytest tests.  These tests check the following:
+  * lambda function URL is operational
+  * `GET` and `POST` requests are received
+  * deployed lambda has adequate permissions to communicate with S3, StepFunctions, etc.
 
-  ```bash
-  make publish-dev
-  make update-lambda-dev
-  ```
+Other notes about tests:
+  * tests are limited to `Dev1` environment
+  * AWS `AWSAdministratorAccess` role credentials must be set on developer machine
+  * environment variable `WORKSPACE=dev` must be set
+    * no other environment variables are required, these are all retrieved from deployed context
 
-#### GET request example
+#### Steps to run integration tests
 
-- Send a GET request with challenge phrase to the lambda function URL:
+  1. Update docker image to ensure local changes are deployed to `Dev1`:
 
-  ```bash
-  pipenv run python -c "from lambdas.helpers import send_get_to_lambda_function_url; print(send_get_to_lambda_function_url('your challenge phrase'))"
-  ```
+```shell
+make publish-dev
+make update-lambda-dev
+```
 
-  Observe output: `your challenge phrase`
+  2. Run tests against deployed assets:
 
-#### POST request examples
-
-- Send a POST request mimicking a webhook POST (not a POD or TIMDEX export job)
-
-  ```bash
-  pipenv run python -c "from lambdas.helpers import send_post_to_lambda_function_url, SAMPLE_WEBHOOK_POST_BODY; print(send_post_to_lambda_function_url(SAMPLE_WEBHOOK_POST_BODY))"
-  ```
-
-  Observe output: `Webhook POST request received and validated, no action taken.`
-
-- Send a POST request mimicking a POD export job webhook
-  _Note_: sending a request that mimics a POD export JOB_END will trigger the entire POD workflow, which is fine _in Dev1 only_ for testing.
-
-  Add the following to your .env:
-  - `VALID_POD_EXPORT_DATE=<the date of a POD export with files in the Dev1 S3 export bucket, in "YYYY-MM-DD" format>` Note: if it's been a while since the last POD export from Alma sandbox, there may be no files in the Dev1 S3 export bucket and you may need to run the publishing job from the sandbox.
-
-  ```bash
-  pipenv run python -c "from lambdas.helpers import send_post_to_lambda_function_url, SAMPLE_POD_EXPORT_JOB_END_WEBHOOK_POST_BODY; print(send_post_to_lambda_function_url(SAMPLE_POD_EXPORT_JOB_END_WEBHOOK_POST_BODY))"
-  ```
-
-  Observe output: `Webhook POST request received and validated, PPOD pipeline initiated.` and then check the Dev1 ppod state machine logs to confirm the entire process ran!
-
-- Send a POST request mimicking a TIMDEX export job webhook
-  _Note_: sending a request that mimics a TIMDEX export JOB_END will trigger the entire TIMDEX workflow, which is fine _in Dev1 only_ for testing.
-
-  Add the following to your .env:
-  - `VALID_TIMDEX_EXPORT_DATE=<the date of a TIMDEX export with files in the Dev1 S3 export bucket, in "YYYY-MM-DD" format>` Note: if it's been a while since the last TIMDEX export from Alma sandbox, there may be no files in the Dev1 S3 export bucket and you may need to run the publishing job from the sandbox.
-
-  ```bash
-  pipenv run python -c "from lambdas.helpers import send_post_to_lambda_function_url, SAMPLE_TIMDEX_EXPORT_JOB_END_WEBHOOK_POST_BODY; print(send_post_to_lambda_function_url(SAMPLE_TIMDEX_EXPORT_JOB_END_WEBHOOK_POST_BODY))"
-  ```
-
-  Observe output: `Webhook POST request received and validated, TIMDEX pipeline initiated.` and then check the Dev1 timdex state machine logs to confirm the entire process ran!
+```shell
+make test-integration
+```
 
 ## Running locally with Docker
 
@@ -91,13 +63,13 @@ Note: this is only useful for validating exceptions and error states, as success
 
 <https://docs.aws.amazon.com/lambda/latest/dg/images-test.html>
 
-### Build the container
+1. Build the container:
 
 ```bash
 make dist-dev
 ```
 
-### Run the default handler for the container
+2. Run the default handler for the container
 
 ```bash
 docker run -p 9000:8080 alma-webhook-lambdas-dev:latest
@@ -105,12 +77,12 @@ docker run -p 9000:8080 alma-webhook-lambdas-dev:latest
 
 Depending on what you're testing, you may need to pass `-e WORKSPACE=dev` and/or other environment variables as options to the `docker run` command.
 
-### POST to the container
+3. POST to the container
 
 ```bash
 curl -XPOST "http://localhost:9000/2015-03-31/functions/function/invocations" -d "{}"
 ```
 
-### Observe output
+4. Observe output
 
 Running the above with no env variables passed should result in an exception.

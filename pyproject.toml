@@ -8,6 +8,10 @@ exclude = ["tests/"]
 
 [tool.pytest.ini_options]
 log_level = "INFO"
+markers = [
+    "unit: unit tests",
+    "integration: integration tests"
+]
 
 [tool.ruff]
 target-version = "py311"
@@ -25,7 +29,8 @@ ignore = [
     # project-specific
     "D100",
     "D103",
-    "D104"
+    "D104",
+    "G002"
 ]
 
 # allow autofix behavior for specified rules

@@ -44,13 +44,15 @@ Other notes about tests:
 
 #### Steps to run integration tests
 
-Update docker image to ensure local changes are deployed to `Dev1`:
+  1. Update docker image to ensure local changes are deployed to `Dev1`:
+
 ```shell
 make publish-dev
 make update-lambda-dev
 ```
 
-Run tests against deployed assets:
+  2. Run tests against deployed assets:
+
 ```shell
 make test-integration
 ```
@@ -61,13 +63,13 @@ Note: this is only useful for validating exceptions and error states, as success
 
 <https://docs.aws.amazon.com/lambda/latest/dg/images-test.html>
 
-### Build the container
+1. Build the container:
 
 ```bash
 make dist-dev
 ```
 
-### Run the default handler for the container
+2. Run the default handler for the container
 
 ```bash
 docker run -p 9000:8080 alma-webhook-lambdas-dev:latest
@@ -75,12 +77,12 @@ docker run -p 9000:8080 alma-webhook-lambdas-dev:latest
 
 Depending on what you're testing, you may need to pass `-e WORKSPACE=dev` and/or other environment variables as options to the `docker run` command.
 
-### POST to the container
+3. POST to the container
 
 ```bash
 curl -XPOST "http://localhost:9000/2015-03-31/functions/function/invocations" -d "{}"
 ```
 
-### Observe output
+4. Observe output
 
 Running the above with no env variables passed should result in an exception.

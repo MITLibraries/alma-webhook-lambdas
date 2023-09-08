@@ -173,8 +173,8 @@ def stubbed_bursar_sfn_client():
     }
     expected_params = {
         "stateMachineArn": "arn:aws:states:us-east-1:account:stateMachine:bursar-test",
-        "input": '{"job_id": "test id", "job_name": "Bursar Export to test"}',
-        "name": "bursar",
+        "input": '{"job_id": "test id"}',
+        "name": "bursar-2022-05-01t00-00-00",
     }
     with Stubber(sfn) as stubber:
         stubber.add_response("start_execution", expected_response, expected_params)

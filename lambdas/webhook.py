@@ -266,11 +266,9 @@ def generate_timdex_step_function_input(message_body: dict[str, Any]) -> tuple[s
 
 
 def generate_bursar_step_function_input(message_body: dict[str, Any]) -> tuple[str, str]:
-    result = {
-        "job_id": message_body["job_instance"]["id"],
-        "job_name": message_body["job_instance"]["name"],
-    }
-    execution_name = "bursar"
+    timestamp = datetime.now(tz=UTC).strftime("%Y-%m-%dt%H-%M-%S")
+    result = {"job_id": message_body["job_instance"]["id"]}
+    execution_name = f"bursar-{timestamp}"
     return json.dumps(result), execution_name
 
 

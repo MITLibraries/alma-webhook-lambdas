@@ -49,15 +49,15 @@ def _test_env():
     os.environ["ALMA_TIMDEX_EXPORT_JOB_NAME_PREFIX"] = "TIMDEX Export to test"
     os.environ["ALMA_BURSAR_EXPORT_JOB_NAME"] = "Bursar Export to test"
     os.environ["LAMBDA_FUNCTION_URL"] = "http://example.com/lambda"
-    os.environ[
-        "PPOD_STATE_MACHINE_ARN"
-    ] = "arn:aws:states:us-east-1:account:stateMachine:ppod-test"
-    os.environ[
-        "TIMDEX_STATE_MACHINE_ARN"
-    ] = "arn:aws:states:us-east-1:account:stateMachine:timdex-test"
-    os.environ[
-        "BURSAR_STATE_MACHINE_ARN"
-    ] = "arn:aws:states:us-east-1:account:stateMachine:bursar-test"
+    os.environ["PPOD_STATE_MACHINE_ARN"] = (
+        "arn:aws:states:us-east-1:account:stateMachine:ppod-test"
+    )
+    os.environ["TIMDEX_STATE_MACHINE_ARN"] = (
+        "arn:aws:states:us-east-1:account:stateMachine:timdex-test"
+    )
+    os.environ["BURSAR_STATE_MACHINE_ARN"] = (
+        "arn:aws:states:us-east-1:account:stateMachine:bursar-test"
+    )
     os.environ["VALID_POD_EXPORT_DATE"] = "2022-05-23"
     os.environ["WORKSPACE"] = "test"
 
@@ -227,9 +227,9 @@ def _set_integration_test_environ() -> None:
             # ruff: noqa: TRY301, TRY002, TRY003, EM101
             raise Exception("WORKSPACE env var must be 'dev' for integration tests")
 
-        os.environ[
-            "ALMA_POD_EXPORT_JOB_NAME"
-        ] = "Publishing Platform Job PPOD EXPORT to Dev1"
+        os.environ["ALMA_POD_EXPORT_JOB_NAME"] = (
+            "Publishing Platform Job PPOD EXPORT to Dev1"
+        )
         os.environ["VALID_POD_EXPORT_DATE"] = "2023-08-15"  # matches fixture date
         os.environ["VALID_TIMDEX_EXPORT_DATE"] = "2023-08-15"  # matches fixture date
 

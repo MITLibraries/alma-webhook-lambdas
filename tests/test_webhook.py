@@ -410,12 +410,20 @@ def test_validate_valid_signature_returns_true(post_request_valid_signature):
 def test_get_job_type_warning_if_env_missing(caplog, monkeypatch):
     job_name = "TIMDEX Export to Test Full"
     monkeypatch.delenv("ALMA_TIMDEX_EXPORT_JOB_NAME_PREFIX")
-    reload(webhook)
+
     with pytest.raises(webhook.JobTypeError):
         webhook.get_job_type(job_name)
     assert (
         "Expected env var not present: ALMA_TIMDEX_EXPORT_JOB_NAME_PREFIX" in caplog.text
     )
+
+
+def test_get_job_type_case_insesitive(caplog, monkeypatch):
+    job_name_caps = "BURSAR EXPORT TO TEST"
+    monkeypatch.setenv("ALMA_BURSAR_EXPORT_JOB_NAME", "bursar export to test")
+    job_type, generate_step_function_input = webhook.get_job_type(job_name_caps)
+    assert job_type == "BURSAR"
+    assert ("BURSAR export job webhook received.") in caplog.text
 
 
 def test_count_exported_records_with_no_records_exported():

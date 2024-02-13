@@ -418,7 +418,7 @@ def test_get_job_type_warning_if_env_missing(caplog, monkeypatch):
     )
 
 
-def test_get_job_type_case_insesitive(caplog, monkeypatch):
+def test_get_job_type_case_insensitive(caplog, monkeypatch):
     job_name_caps = "BURSAR EXPORT TO TEST"
     monkeypatch.setenv("ALMA_BURSAR_EXPORT_JOB_NAME", "bursar export to test")
     job_type, generate_step_function_input = webhook.get_job_type(job_name_caps)

@@ -1,0 +1,73 @@
+<xb:xml-fragment xmlns:xb="http://com/exlibris/urm/rep/externalsysfinesfees/xmlbeans">
+    <xb:userExportedFineFees>
+        <xb:exportNumber>17492217040006761</xb:exportNumber>
+    </xb:userExportedFineFees>
+    <xb:userExportedFineFees>
+        <xb:userExportedList>
+            <xb:userExportedFineFeesList>
+                <xb:user>
+                    <xb:type>02</xb:type>
+                    <xb:value>999999999</xb:value>
+                    <xb:owneredEntity>
+                        <xb:InstitutionId>6761</xb:InstitutionId>
+                    </xb:owneredEntity>
+                </xb:user>
+                <xb:patronName>Beaver, Tim</xb:patronName>
+                <xb:finefeeList>
+                    <xb:userFineFee>
+                        <xb:fineFeeComment xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                            xsi:nil="true" />
+                        <xb:fineFeeType>LOSTITEMPROCESSFEE</xb:fineFeeType>
+                        <xb:owneredEntity>
+                            <xb:InstitutionId>6761</xb:InstitutionId>
+                            <xb:libraryId>12900830000231</xb:libraryId>
+                            <xb:libraryCode>RES_SHARE</xb:libraryCode>
+                        </xb:owneredEntity>
+                        <xb:lastTransactionDate>02/13/2024 15:11:46</xb:lastTransactionDate>
+                        <xb:itemTitle>Ecology of the saguaro /</xb:itemTitle>
+                        <xb:itemCallNumebr>QK495.C11 S64 1977</xb:itemCallNumebr>
+                        <xb:itemLibrary>Hayden Library.</xb:itemLibrary>
+                        <xb:itemLocation>Stacks</xb:itemLocation>
+                        <xb:itemInternalLocation>Stacks</xb:itemInternalLocation>
+                        <xb:itemDueDate xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                            xsi:nil="true" />
+                        <xb:itemBarcode>39080036507785</xb:itemBarcode>
+                        <xb:compositeSum>
+                            <xb:currency>USD</xb:currency>
+                            <xb:sum>0.5</xb:sum>
+                            <xb:vat xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                                xsi:nil="true" />
+                        </xb:compositeSum>
+                        <xb:bursarTransactionId>17492216710006761</xb:bursarTransactionId>
+                    </xb:userFineFee>
+                    <xb:userFineFee>
+                        <xb:fineFeeComment xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                            xsi:nil="true" />
+                        <xb:fineFeeType>OTHER</xb:fineFeeType>
+                        <xb:owneredEntity>
+                            <xb:InstitutionId>6761</xb:InstitutionId>
+                            <xb:libraryId>12900830000231</xb:libraryId>
+                            <xb:libraryCode>RES_SHARE</xb:libraryCode>
+                        </xb:owneredEntity>
+                        <xb:lastTransactionDate>02/13/2024 15:11:28</xb:lastTransactionDate>
+                        <xb:itemTitle>Cheese,</xb:itemTitle>
+                        <xb:itemCallNumebr>SF271.D262</xb:itemCallNumebr>
+                        <xb:itemLibrary>Library Storage Annex</xb:itemLibrary>
+                        <xb:itemLocation>Off Campus Collection</xb:itemLocation>
+                        <xb:itemInternalLocation>Off Campus Collection</xb:itemInternalLocation>
+                        <xb:itemDueDate xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                            xsi:nil="true" />
+                        <xb:itemBarcode>39080032862812</xb:itemBarcode>
+                        <xb:compositeSum>
+                            <xb:currency>USD</xb:currency>
+                            <xb:sum>0.5</xb:sum>
+                            <xb:vat xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                                xsi:nil="true" />
+                        </xb:compositeSum>
+                        <xb:bursarTransactionId>17492216690006761</xb:bursarTransactionId>
+                    </xb:userFineFee>
+                </xb:finefeeList>
+            </xb:userExportedFineFeesList>
+        </xb:userExportedList>
+    </xb:userExportedFineFees>
+</xb:xml-fragment>

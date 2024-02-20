@@ -206,9 +206,13 @@ def set_env_vars_from_ssm_parameters():
     timdex_state_machine_arn = ssm_client.get_parameter(
         Name="/apps/almahook/timdex-ingest-state-machine-arn"
     )["Parameter"]["Value"]
+    bursar_state_machine_arn = ssm_client.get_parameter(
+        Name="/apps/almahook/bursar-state-machine-arn"
+    )["Parameter"]["Value"]
 
     os.environ["PPOD_STATE_MACHINE_ARN"] = ppod_state_machine_arn
     os.environ["TIMDEX_STATE_MACHINE_ARN"] = timdex_state_machine_arn
+    os.environ["BURSAR_STATE_MACHINE_ARN"] = bursar_state_machine_arn
 
 
 @pytest.fixture
@@ -227,9 +231,6 @@ def _set_integration_test_environ() -> None:
             # ruff: noqa: TRY301, TRY002, TRY003, EM101
             raise Exception("WORKSPACE env var must be 'dev' for integration tests")
 
-        os.environ["ALMA_POD_EXPORT_JOB_NAME"] = (
-            "Publishing Platform Job PPOD EXPORT to Dev1"
-        )
         os.environ["VALID_POD_EXPORT_DATE"] = "2023-08-15"  # matches fixture date
         os.environ["VALID_TIMDEX_EXPORT_DATE"] = "2023-08-15"  # matches fixture date
 
@@ -257,6 +258,10 @@ def _integration_tests_s3_fixtures(_set_integration_test_environ) -> None:
         (
             "dev-sftp-shared",
             "exlibris/timdex/TIMDEX_ALMA_EXPORT_DAILY_20230815_220844[016]_new.tar.gz",
+        ),
+        (
+            "dev-sftp-shared",
+            "exlibris/bursar/BURSAR_EXPORT_to_Dev1-12345678-99999999.xml",
         ),
     ]
     s3 = boto3.client("s3")
@@ -292,7 +297,9 @@ def sample_pod_export_job_end_webhook_post_body() -> dict:
     return {
         "action": "JOB_END",
         "job_instance": {
-            "name": os.getenv("ALMA_POD_EXPORT_JOB_NAME", "PPOD Export"),
+            "name": os.getenv(
+                "ALMA_POD_EXPORT_JOB_NAME", "Publishing Platform Job PPOD EXPORT to Dev1"
+            ),
             "end_time": os.getenv("VALID_POD_EXPORT_DATE", "2022-05-23"),
             "status": {"value": "COMPLETED_SUCCESS"},
             "counter": [
@@ -310,13 +317,40 @@ def sample_timdex_export_job_end_webhook_post_body() -> dict:
     return {
         "action": "JOB_END",
         "job_instance": {
-            "name": "Publishing Platform Job TIMDEX EXPORT to Dev1 DAILY",
+            "name": os.getenv(
+                "ALMA_TIMDEX_EXPORT_JOB_NAME",
+                "Publishing Platform Job TIMDEX EXPORT to Dev1 DAILY",
+            ),
             "status": {"value": "COMPLETED_SUCCESS"},
             "end_time": os.getenv("VALID_TIMDEX_EXPORT_DATE", "2022-10-24"),
             "counter": [
                 {
                     "type": {"value": "label.new.records", "desc": "New Records"},
                     "value": "1",
+                },
+            ],
+        },
+    }
+
+
+@pytest.fixture
+def sample_bursar_export_job_end_webhook_post_body() -> dict:
+    return {
+        "action": "JOB_END",
+        "job_instance": {
+            "name": os.getenv(
+                "ALMA_BURSAR_EXPORT_JOB_NAME",
+                "Export to bursar using profile BURSAR EXPORT to Dev1",
+            ),
+            "status": {"value": "COMPLETED_SUCCESS"},
+            "id": "12345678",
+            "counter": [
+                {
+                    "type": {
+                        "value": "com.exlibris.external.bursar.report.fines_fees_count",
+                        "desc": "Total number of fines and fees",
+                    },
+                    "value": "2",
                 },
             ],
         },

@@ -220,7 +220,7 @@ def get_job_type(job_name: str) -> tuple[str, Callable]:
         job_name_prefix = os.getenv(env_key)
         if not job_name_prefix:
             logger.warning("Expected env var not present: %s", env_key)
-        if job_name_prefix and job_name.startswith(job_name_prefix):
+        if job_name_prefix and job_name.lower().startswith(job_name_prefix.lower()):
             logger.info(log_msg)
             return job_type, step_function_input_handler
 

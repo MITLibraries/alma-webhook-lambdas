@@ -136,3 +136,29 @@ def test_integration_webhook_handles_timdex_step_function_trigger(
     assert step_function_input_json["run-date"] == "2023-08-15"
     assert step_function_input_json["run-type"] == "daily"
     assert step_function_input_json["source"] == "alma"
+
+
+@pytest.mark.integration()
+@pytest.mark.usefixtures("_set_integration_test_environ")
+@pytest.mark.usefixtures("_integration_tests_s3_fixtures")
+def test_integration_webhook_handles_bursar_step_function_trigger(
+    sample_bursar_export_job_end_webhook_post_body,
+):
+    """Test deployed lambda handles BURSAR job type webhooks and invokes step function.
+
+    Able to assert specific values in StepFunction execution results based on fixtures.
+    """
+    response_text = send_post_to_lambda_function_url(
+        sample_bursar_export_job_end_webhook_post_body
+    )
+
+    # assert lambda response that StepFunction invoked
+    assert (
+        response_text == "Webhook POST request received and validated, BURSAR pipeline "
+        "initiated."
+    )
+
+    # assert StepFunction running and with expected payload
+    step_function_arn = os.getenv("BURSAR_STATE_MACHINE_ARN")
+    step_function_input_json = get_step_function_invocation_results(step_function_arn)
+    assert step_function_input_json["job_id"] == "12345678"

@@ -144,7 +144,7 @@ def test_integration_webhook_handles_timdex_step_function_trigger(
 def test_integration_webhook_handles_bursar_step_function_trigger(
     sample_bursar_export_job_end_webhook_post_body,
 ):
-    """Test deployed lambda handles PPOD job type webhooks and invokes step function.
+    """Test deployed lambda handles BURSAR job type webhooks and invokes step function.
 
     Able to assert specific values in StepFunction execution results based on fixtures.
     """

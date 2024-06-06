@@ -367,8 +367,10 @@ def _skip_integration_tests_when_not_dev_workspace(items):
         ):
             item.add_marker(
                 pytest.mark.skip(
-                    reason="integration tests currently only support environments: %s"
-                    % allowed_test_environments
+                    reason=(
+                        "integration tests currently only support environments: "
+                        f"{allowed_test_environments}"
+                    )
                 )
             )
 

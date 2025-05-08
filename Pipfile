@@ -21,6 +21,7 @@ ruff = "*"
 types-requests = "*"
 typing-extensions = "*"
 pytest-mock = "*"
+pip-audit = "*"
 
 [requires]
 python_version = "3.12"

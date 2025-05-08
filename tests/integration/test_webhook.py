@@ -59,7 +59,7 @@ def get_step_function_invocation_results(
         time.sleep(0.5)
 
 
-@pytest.mark.integration()
+@pytest.mark.integration
 @pytest.mark.usefixtures("_set_integration_test_environ")
 def test_integration_webhook_handles_get_request_success():
     """Test that deployed lambda can receive GET requsts"""
@@ -68,7 +68,7 @@ def test_integration_webhook_handles_get_request_success():
     assert response_text == challenge_phrase
 
 
-@pytest.mark.integration()
+@pytest.mark.integration
 @pytest.mark.usefixtures("_set_integration_test_environ")
 def test_integration_webhook_handles_post_request_but_no_job_type_match():
     """Test that deployed lambda can receive POST requests and skips unknown job type"""
@@ -80,7 +80,7 @@ def test_integration_webhook_handles_post_request_but_no_job_type_match():
     )
 
 
-@pytest.mark.integration()
+@pytest.mark.integration
 @pytest.mark.usefixtures("_set_integration_test_environ")
 @pytest.mark.usefixtures("_integration_tests_s3_fixtures")
 def test_integration_webhook_handles_pod_step_function_trigger(
@@ -109,7 +109,7 @@ def test_integration_webhook_handles_pod_step_function_trigger(
     )
 
 
-@pytest.mark.integration()
+@pytest.mark.integration
 @pytest.mark.usefixtures("_set_integration_test_environ")
 @pytest.mark.usefixtures("_integration_tests_s3_fixtures")
 def test_integration_webhook_handles_timdex_step_function_trigger(
@@ -138,7 +138,7 @@ def test_integration_webhook_handles_timdex_step_function_trigger(
     assert step_function_input_json["source"] == "alma"
 
 
-@pytest.mark.integration()
+@pytest.mark.integration
 @pytest.mark.usefixtures("_set_integration_test_environ")
 @pytest.mark.usefixtures("_integration_tests_s3_fixtures")
 def test_integration_webhook_handles_bursar_step_function_trigger(

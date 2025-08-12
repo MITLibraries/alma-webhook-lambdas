@@ -1,4 +1,3 @@
-# ruff: noqa: G004
 import datetime
 import os
 import urllib
@@ -12,7 +11,6 @@ import requests_mock
 from botocore.exceptions import ClientError
 from botocore.stub import Stubber
 
-import lambdas.helpers
 import lambdas.webhook
 from lambdas.webhook import lambda_handler
 
@@ -228,7 +226,7 @@ def _set_integration_test_environ() -> None:
     """
     with temp_environ(ORIGINAL_ENV):
         if os.getenv("WORKSPACE") != "dev":
-            # ruff: noqa: TRY301, TRY002, TRY003, EM101
+            # ruff: noqa: TRY002, TRY003, EM101
             raise Exception("WORKSPACE env var must be 'dev' for integration tests")
 
         os.environ["VALID_POD_EXPORT_DATE"] = "2023-08-15"  # matches fixture date

@@ -39,10 +39,10 @@ def temp_environ(environ):
 def _test_env():
     os.environ["AWS_ACCESS_KEY_ID"] = "testing"
     os.environ["AWS_DEFAULT_REGION"] = "us-east-1"
-    os.environ["AWS_SECRET_ACCESS_KEY"] = "testing"
-    os.environ["AWS_SECURITY_TOKEN"] = "testing"
-    os.environ["AWS_SESSION_TOKEN"] = "testing"
-    os.environ["ALMA_CHALLENGE_SECRET"] = "itsasecret"
+    os.environ["AWS_SECRET_ACCESS_KEY"] = "test-secret"  # noqa: S105
+    os.environ["AWS_SECURITY_TOKEN"] = "test-token"  # noqa: S105
+    os.environ["AWS_SESSION_TOKEN"] = "test-session"  # noqa: S105
+    os.environ["ALMA_CHALLENGE_SECRET"] = "itsasecret"  # noqa: S105
     os.environ["ALMA_POD_EXPORT_JOB_NAME"] = "PPOD Export to test"
     os.environ["ALMA_TIMDEX_EXPORT_JOB_NAME_PREFIX"] = "TIMDEX Export to test"
     os.environ["ALMA_BURSAR_EXPORT_JOB_NAME"] = "Bursar Export to test"

@@ -12,7 +12,7 @@ In addition, we have two Alma instances (sandbox and production), but three AWS 
 ## Development
 
 - To preview a list of available Makefile commands: `make help`
-- To install with dev dependencies: `make install`
+- To create a Python virtual environment with dev dependencies: `make install`
 - To update dependencies: `make update`
 - To run unit tests: `make test`
 - To lint the repo: `make lint`

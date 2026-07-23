@@ -94,8 +94,7 @@ def test_webhook_handles_post_request_invalid_signature(
         "headers": {"Content-Type": "text/plain"},
         "isBase64Encoded": False,
         "statusCode": 401,
-        "body": "Unable to validate signature. Has the webhook challenge secret "
-        "changed?",
+        "body": "Unable to validate signature. Has the webhook challenge secret changed?",
     }
     assert lambda_handler(post_request_invalid_signature, {}) == expected_output
     assert (
@@ -328,8 +327,7 @@ def test_webhook_handles_post_request_timdex_export_job_success(
         "headers": {"Content-Type": "text/plain"},
         "isBase64Encoded": False,
         "statusCode": 200,
-        "body": "Webhook POST request received and validated, TIMDEX pipeline "
-        "initiated.",
+        "body": "Webhook POST request received and validated, TIMDEX pipeline initiated.",
     }
     with patch("boto3.client") as mocked_boto_client:
         mocked_boto_client.return_value = stubbed_timdex_sfn_client
@@ -421,7 +419,7 @@ def test_get_job_type_warning_if_env_missing(caplog, monkeypatch):
 def test_get_job_type_case_insensitive(caplog, monkeypatch):
     job_name_caps = "BURSAR EXPORT TO TEST"
     monkeypatch.setenv("ALMA_BURSAR_EXPORT_JOB_NAME", "bursar export to test")
-    job_type, generate_step_function_input = webhook.get_job_type(job_name_caps)
+    job_type, _ = webhook.get_job_type(job_name_caps)
     assert job_type == "BURSAR"
     assert ("BURSAR export job webhook received.") in caplog.text
 

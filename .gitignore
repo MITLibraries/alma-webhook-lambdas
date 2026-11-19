@@ -6,6 +6,10 @@ __pycache__/
 .arch_tag
 .tool-versions
 
+# SAM
+.aws-sam/
+tests/sam/env.json
+
 # C extensions
 *.so
 

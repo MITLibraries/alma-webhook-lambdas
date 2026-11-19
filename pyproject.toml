@@ -13,6 +13,7 @@ dependencies = [
 dev = [
     "boto3-stubs[essential]",
     "coverage",
+    "coveralls",
     "freezegun",
     "mypy",
     "pip-audit",
@@ -59,6 +60,9 @@ ignore = [
     "PLR0913",
     "PLR0915",
     "S321",
+    "CPY001",
+    "TD002",
+    "TD003",
 ]
 fixable = ["E", "F", "I", "Q"]
 
